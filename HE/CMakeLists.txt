@@ -6,7 +6,6 @@ set(FATHER_PROJECT_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/..)
 # find_package(SEAL CONFIG REQUIRED)
 find_package(SEAL 4.1.2 EXACT QUIET PATHS "${FATHER_PROJECT_SOURCE_DIR}/Extern/SEAL/build" NO_DEFAULT_PATH)
 
-option(USE_HE_GPU "Use GPU backend for HE" OFF)
 message(STATUS "USE_HE_GPU: ${USE_HE_GPU}")
 # Phantom: GPU backend for HE
 if(USE_HE_GPU)
@@ -51,6 +50,11 @@ if(NOT USE_HE_GPU)
         Utils
     )
 else()
+    add_library(PhantomNTTDot STATIC src/NTTDot.cu)
+    set_target_properties(PhantomNTTDot PROPERTIES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED ON)
+    target_include_directories(PhantomNTTDot PRIVATE include)
+    target_link_libraries(PhantomNTTDot PRIVATE phantom::Phantom CUDA::cudart)
+    target_link_libraries(HE PRIVATE PhantomNTTDot)
     target_compile_definitions(HE PUBLIC USE_HE_GPU)
     # CUDA 13 installs libcudacxx under include/cccl; Phantom's public
     # headers also need it when consumed by an ordinary C++ compiler.

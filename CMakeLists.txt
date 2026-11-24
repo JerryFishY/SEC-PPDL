@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.13)
 
 project(SEC_PPDL)
+option(USE_HE_GPU "Use GPU backend for HE" OFF)
+if(USE_HE_GPU)
+    enable_language(CUDA)
+endif()
 include(CTest)
 set(CMAKE_CXX_STANDARD 17)            # 使用C++17
 set(CMAKE_CXX_STANDARD_REQUIRED True) # 强制使用指定的C++标准

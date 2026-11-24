@@ -143,6 +143,8 @@ int main(int argc, char **argv) {
         cases.push_back({5,7,4,3,1,1,8,0,false,false,1});
         cases.push_back({5,7,4,3,1,1,8,0,false,false,8});
         cases.push_back({3,5,7,1,3,0,4,0,false,false});
+        // With a single packed channel, this sum spans multiple GPU product batches and a tail.
+        cases.push_back({65,3,3,1,1,0,1,0,false,true});
         cases.push_back({64,128,14,3,1,1,0,0,false,false});
         for (size_t i = 0; i < cases.size(); ++i) RunCase(cases[i], i, he, threads, repeat, benchmark && i == cases.size() - 1);
         he.FreeKey();

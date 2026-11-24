@@ -1,6 +1,7 @@
 #include <LinearLayer/ConvOptiEncode.h>
 #ifdef USE_HE_GPU
 #include <phantom/evaluate.cuh>
+#include <HE/unified/NTTDot.h>
 #include <chrono>
 
 namespace LinearLayer {
@@ -42,16 +43,30 @@ Tensor<UnifiedCiphertext> Conv2DOptiEncode::HEComputeGPU(const Tensor<UnifiedPla
             for (size_t giant = layout_.giant_steps; giant-- > 0;) {
                 if (have_result) ApplyAutomorphismGPU(result, giant_element);
                 UnifiedCiphertext subtotal;
+                HE::unified::NTTProductBatch batch;
                 bool have_subtotal = false;
-                for (size_t i = 0; i < layout_.input_blocks; ++i)
+                auto flush = [&] {
+                    auto &ct = subtotal.dcipher();
+                    HE::unified::AccumulateNTTProducts(
+                        batch, HE->context->dcontext().gpu_rns_tables().modulus(),
+                        ct.poly_modulus_degree(), ct.coeff_modulus_size(), ct.size(),
+                        ct.data(), have_subtotal);
+                    batch.count = 0;
+                    have_subtotal = true;
+                };
+                for (size_t i = 0; i < layout_.input_blocks; ++i) {
                     for (size_t a = 0; a < layout_.baby_steps; ++a) {
-                        const size_t index = (i * layout_.output_blocks + o) * layout_.channels + giant * layout_.baby_steps + a;
+                        const size_t index = (i * layout_.output_blocks + o) * layout_.channels
+                                             + giant * layout_.baby_steps + a;
                         if (!nonzero_weights_[index]) continue;
-                        UnifiedCiphertext product;
-                        evaluator.multiply_plain_ntt(babies[i * layout_.baby_steps + a], weights(index), product);
-                        if (have_subtotal) evaluator.add_inplace(subtotal, product);
-                        else { subtotal = std::move(product); have_subtotal = true; }
+                        const auto &baby = babies[i * layout_.baby_steps + a];
+                        if (!have_subtotal && !batch.count) subtotal = baby;
+                        batch.ciphertexts[batch.count] = baby.dcipher().data();
+                        batch.plaintexts[batch.count] = weights(index).dplain().data();
+                        if (++batch.count == batch.capacity) flush();
                     }
+                }
+                if (batch.count) flush();
                 if (have_subtotal) {
                     evaluator.transform_from_ntt_inplace(subtotal);
                     if (have_result) evaluator.add_inplace(result, subtotal);
