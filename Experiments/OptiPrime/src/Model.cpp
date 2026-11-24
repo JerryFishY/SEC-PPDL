@@ -156,6 +156,7 @@ QuantizedImageNetModel::QuantizedImageNetModel(Context &context, const Weights *
         (weights && weights->size() != metadata_.size()))
         throw std::invalid_argument("Only the server supplies the quantized weights");
     LinearLayer::OptiEncodeOptions options;
+    options.cuda_graph = context.config.cuda_graph;
     options.threads = context.config.threads;
     options.add_bias = false;
     options.output_mod_switches = context.config.output_mod_switches;
@@ -223,21 +224,23 @@ Tensor<uint64_t> QuantizedImageNetModel::Convolve(size_t index, Tensor<uint64_t>
     }
     {
         Timer timer(context_, final ? profile.fully_connected : profile.convolution);
-        if (!meta.multipliers.empty()) {
-            const size_t plane = output.size() / meta.multipliers.size();
-            for (size_t i = 0; i < output.size(); ++i)
-                output(i) =
-                    context_.config.power_of_two
-                        ? (output(i) * meta.multipliers[i / plane]) & (context_.he->plain_mod - 1)
-                        : uint64_t(__uint128_t(output(i)) * meta.multipliers[i / plane] %
-                                   context_.he->plain_mod);
-        }
-        if (context_.config.party == 1 && !final) {
-            const auto &bias = layers_[index]->bias;
-            const size_t plane = output.size() / bias.size();
-            for (size_t i = 0; i < output.size(); ++i)
-                output(i) = (output(i) + Field(bias(i / plane), context_.he->plain_mod)) %
-                            context_.he->plain_mod;
+        const bool add_bias = context_.config.party == 1 && !final;
+        if (add_bias || !meta.multipliers.empty()) {
+            const uint64_t t = context_.he->plain_mod;
+            const size_t channels = meta.shape.output_channels;
+            const size_t plane = output.size() / channels;
+            for (size_t c = 0; c < channels; ++c) {
+                const uint64_t gain = meta.multipliers.empty() ? 1 : meta.multipliers[c];
+                const uint64_t offset = add_bias ? Field(layers_[index]->bias(c), t) : 0;
+                auto *values = output.data().data() + c * plane;
+                if (context_.config.power_of_two) {
+                    for (size_t p = 0; p < plane; ++p)
+                        values[p] = (values[p] * gain + offset) & (t - 1);
+                } else {
+                    for (size_t p = 0; p < plane; ++p)
+                        values[p] = (__uint128_t(values[p]) * gain + offset) % t;
+                }
+            }
         }
     }
     AfterConvolution(context_, meta, output, final, profile);
@@ -259,6 +262,12 @@ Tensor<uint64_t> QuantizedImageNetModel::Forward(const Tensor<uint64_t> &input, 
         context_, input,
         [&](size_t index, Tensor<uint64_t> x) { return Convolve(index, std::move(x), profile); },
         profile, steps_, metadata_);
+}
+void QuantizedImageNetModel::PrepareLinearInputs(bool include_product) {
+    if (context_.config.linear == LinearBackend::Cheetah)
+        throw std::invalid_argument("Prepared HE inputs require OptiEncode");
+    for (auto &layer : layers_)
+        if (auto *conv = dynamic_cast<LinearLayer::Conv2DOptiEncode *>(layer.get())) conv->PrepareInput(include_product);
 }
 void QuantizedImageNetModel::Plan(Context &context, const std::vector<LayerMetadata> &metadata,
                                   const std::vector<Step> &steps) {

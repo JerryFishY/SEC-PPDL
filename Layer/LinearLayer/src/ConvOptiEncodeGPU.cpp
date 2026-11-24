@@ -17,12 +17,88 @@ void Conv2DOptiEncode::ApplyAutomorphismGPU(UnifiedCiphertext &ciphertext, uint3
     }
 }
 
+namespace {
+void CheckCUDA(cudaError_t status) {
+    if (status != cudaSuccess) throw std::runtime_error(cudaGetErrorString(status));
+}
+void CopyDevice(const UnifiedCiphertext &from, UnifiedCiphertext &to) {
+    const auto &src = from.dcipher();
+    auto &dst = to.dcipher();
+    if (src.chain_index() != dst.chain_index() || src.size() != dst.size() ||
+        src.poly_modulus_degree() != dst.poly_modulus_degree() ||
+        src.is_ntt_form() != dst.is_ntt_form())
+        throw std::logic_error("OptiEncode CUDA graph ciphertext shape mismatch");
+    const auto bytes = src.size() * src.coeff_modulus_size() * src.poly_modulus_degree() * sizeof(uint64_t);
+    CheckCUDA(cudaMemcpyAsync(dst.data(), src.data(), bytes, cudaMemcpyDeviceToDevice, cudaStreamPerThread));
+}
+} // namespace
+
+struct Conv2DOptiEncode::GraphState {
+    Tensor<UnifiedCiphertext> inputs, outputs;
+    cudaGraphExec_t executable = nullptr;
+    ~GraphState() { if (executable) cudaGraphExecDestroy(executable); }
+};
+
+void Conv2DOptiEncode::PrepareGraph() {
+    // A wholly zero output block needs a fresh encryption on each invocation.
+    for (size_t o = 0; o < layout_.output_blocks; ++o) {
+        bool nonzero = false;
+        for (size_t i = 0; i < layout_.input_blocks; ++i)
+            for (size_t k = 0; k < layout_.channels; ++k)
+                nonzero |= nonzero_weights_[(i * layout_.output_blocks + o) * layout_.channels + k] != 0;
+        if (!nonzero) return;
+    }
+    auto state = std::make_shared<GraphState>();
+    state->inputs = Tensor<UnifiedCiphertext>({layout_.TileCount(), layout_.input_blocks},
+                                              HE->GenerateZeroCiphertext(DEVICE));
+    state->outputs = Tensor<UnifiedCiphertext>({layout_.TileCount(), layout_.output_blocks}, DEVICE);
+    EvaluateGPU(weight_pt, state->inputs, state->outputs);
+    HE->evaluator->sync();
+
+    Tensor<UnifiedCiphertext> temporary(state->outputs.shape(), DEVICE);
+    cudaGraph_t captured = nullptr;
+    CheckCUDA(cudaStreamBeginCapture(cudaStreamPerThread, cudaStreamCaptureModeThreadLocal));
+    try {
+        EvaluateGPU(weight_pt, state->inputs, temporary);
+        for (size_t i = 0; i < temporary.size(); ++i) {
+            CopyDevice(temporary(i), state->outputs(i));
+            temporary(i) = UnifiedCiphertext(DEVICE);
+        }
+    } catch (...) {
+        cudaStreamEndCapture(cudaStreamPerThread, &captured);
+        if (captured) cudaGraphDestroy(captured);
+        throw;
+    }
+    CheckCUDA(cudaStreamEndCapture(cudaStreamPerThread, &captured));
+    const auto status = cudaGraphInstantiate(&state->executable, captured, 0);
+    cudaGraphDestroy(captured);
+    CheckCUDA(status);
+    CheckCUDA(cudaGraphUpload(state->executable, cudaStreamPerThread));
+    CheckCUDA(cudaGraphLaunch(state->executable, cudaStreamPerThread));
+    CheckCUDA(cudaStreamSynchronize(cudaStreamPerThread));
+    graph_ = std::move(state);
+}
+
 Tensor<UnifiedCiphertext> Conv2DOptiEncode::HEComputeGPU(const Tensor<UnifiedPlaintext> &weights,
-                                                      Tensor<UnifiedCiphertext> &inputs) {
+                                                         Tensor<UnifiedCiphertext> &inputs) {
     Tensor<UnifiedCiphertext> output({layout_.TileCount(), layout_.output_blocks}, HE->server ? DEVICE : HOST);
     if (!HE->server) return output;
-    HE->evaluator->sync();
     const auto start = std::chrono::steady_clock::now();
+    if (graph_) {
+        for (size_t i = 0; i < inputs.size(); ++i) CopyDevice(inputs(i), graph_->inputs(i));
+        CheckCUDA(cudaGraphLaunch(graph_->executable, cudaStreamPerThread));
+        output = graph_->outputs;
+    } else {
+        EvaluateGPU(weights, inputs, output);
+    }
+    HE->evaluator->sync();
+    stats_.compute_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    return output;
+}
+
+void Conv2DOptiEncode::EvaluateGPU(const Tensor<UnifiedPlaintext> &weights,
+                                   const Tensor<UnifiedCiphertext> &inputs,
+                                   Tensor<UnifiedCiphertext> &output) {
     auto &evaluator = *HE->evaluator;
     const uint32_t giant_element = static_cast<uint32_t>(Operator::OptiEncodePowerMod(
         layout_.generator, layout_.baby_steps, 2 * layout_.degree));
@@ -85,10 +161,6 @@ Tensor<UnifiedCiphertext> Conv2DOptiEncode::HEComputeGPU(const Tensor<UnifiedPla
             output({tile, o}) = std::move(result);
         }
     }
-    // Include kernel completion, not merely asynchronous launch time.
-    evaluator.sync();
-    stats_.compute_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
-    return output;
 }
 } // namespace LinearLayer
 #endif

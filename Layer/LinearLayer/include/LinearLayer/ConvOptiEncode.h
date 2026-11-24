@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 namespace LinearLayer {
+struct RingConvGPU;
 struct OptiEncodeOptions {
     size_t threads = 1;
     size_t channels_per_block = 0;
@@ -15,6 +16,7 @@ struct OptiEncodeOptions {
     // Predivide the reconstructed input ciphertext in R_q before any Galois
     // operation (BumbleBee ZeroGap normalization). Weights remain unscaled.
     bool ciphertext_inverse_normalization = false;
+    bool cuda_graph = false;
 };
 struct OptiEncodeStats {
     size_t input_ciphertexts = 0, output_ciphertexts = 0;
@@ -34,12 +36,32 @@ public:
     Conv2DOptiEncode(uint64_t feature_size, uint64_t in_channels, uint64_t out_channels,
                     uint64_t kernel_size, uint64_t stride, HE::HEEvaluator *he,
                     OptiEncodeOptions options = {});
+    // Two-party, input-independent preprocessing for exactly one subsequent call.
+    // Requires a power-of-two plaintext modulus and one active BFV data prime.
+    void PrepareInput(bool include_product = false);
     Tensor<uint64_t> operator()(Tensor<uint64_t> &input) override;
     const Operator::OptiEncodeLayout &Layout() const { return layout_; }
     const OptiEncodeStats &Stats() const { return stats_; }
     // The small union covers all automatically selected layouts for this N.
     static std::vector<uint32_t> GaloisElements(size_t degree);
 private:
+    struct PreparedInput {
+        Tensor<uint64_t> mask, product_share;
+        bool include_product = false;
+        Tensor<UnifiedCiphertext> ciphertexts;
+    };
+    std::unique_ptr<PreparedInput> prepared_;
+    Tensor<uint64_t> OpenMaskedInput(const Tensor<uint64_t> &input, const PreparedInput &state);
+    void Normalize(seal::Ciphertext &ct, uint64_t inverse) const;
+    uint64_t InputInverse() const;
+    Tensor<UnifiedCiphertext> ApplyPreparedInput(Tensor<uint64_t> &correction, PreparedInput &state);
+    void AddRingProduct(const Tensor<uint64_t> &correction, Tensor<uint64_t> &output);
+    std::vector<uint32_t> ring_weights_;
+#ifdef USE_HE_GPU
+    std::shared_ptr<RingConvGPU> ring_gpu_;
+#endif
+    Tensor<uint64_t> ExtractMaskedOutput(Tensor<UnifiedCiphertext> &evaluated);
+    void AddBias(Tensor<uint64_t> &output) const;
     OptiEncodeOptions options_;
     Operator::OptiEncodeLayout layout_;
     OptiEncodeStats stats_;
@@ -50,6 +72,11 @@ private:
     Tensor<UnifiedCiphertext> HECompute(const Tensor<UnifiedPlaintext> &weights,
                                        Tensor<UnifiedCiphertext> &input) override;
 #ifdef USE_HE_GPU
+    struct GraphState;
+    std::shared_ptr<GraphState> graph_;
+    void PrepareGraph();
+    void EvaluateGPU(const Tensor<UnifiedPlaintext> &weights, const Tensor<UnifiedCiphertext> &inputs,
+                     Tensor<UnifiedCiphertext> &output);
     Tensor<UnifiedCiphertext> HEComputeGPU(const Tensor<UnifiedPlaintext> &weights,
                                          Tensor<UnifiedCiphertext> &input);
     void ApplyAutomorphismGPU(UnifiedCiphertext &ciphertext, uint32_t element) const;

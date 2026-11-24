@@ -9,7 +9,7 @@ using Datatype::Tensor;
 uint64_t Field(int64_t v, uint64_t t) {
     return v < 0 ? (t - uint64_t(-v) % t) % t : uint64_t(v) % t;
 }
-void Check(HE::HEEvaluator &he, size_t ci, size_t co, size_t h, size_t k, size_t c, int pattern) {
+void Check(HE::HEEvaluator &he, size_t ci, size_t co, size_t h, size_t k, size_t c, int pattern, int prepare = 0) {
     const uint64_t t = he.plain_mod;
     Tensor<int64_t> x({ci, h, h}), w({co, ci, k, k});
     std::mt19937_64 rng(91 + pattern);
@@ -31,7 +31,16 @@ void Check(HE::HEEvaluator &he, size_t ci, size_t co, size_t h, size_t k, size_t
     options.threads = 4;
     options.ciphertext_inverse_normalization = !(t & 1);
     options.channels_per_block = c;
+    options.cuda_graph = prepare != 0;
+    if (he.server && prepare)
+        for (size_t o = 0; o < co; ++o) bias(o) = t - 1 - o;
     LinearLayer::Conv2DOptiEncode conv(h, 1, k / 2, weight, bias, &he, options);
+    if (prepare) {
+        conv.PrepareInput(prepare == 2);
+        bool rejected = false;
+        try { conv.PrepareInput(prepare == 2); } catch (const std::logic_error &) { rejected = true; }
+        if (!rejected) throw std::runtime_error("Unused HE preprocessing was overwritten");
+    }
     auto out = conv(input);
     Tensor<uint64_t> peer(out.shape());
     if (he.server)
@@ -56,7 +65,7 @@ void Check(HE::HEEvaluator &he, size_t ci, size_t co, size_t h, size_t k, size_t
                                     sum += x({i, size_t(row), size_t(column)}) * w({o, i, kr, kc});
                             }
                     const size_t index = (o * h + r) * h + col;
-                    errors += (out(index) + peer(index)) % t != Field(sum, t);
+                    errors += (out(index) + peer(index)) % t != (Field(sum, t) + bias(o)) % t;
                 }
     if (he.server) {
         he.IO->send_data(&errors, 8);
@@ -99,6 +108,12 @@ int main(int argc, char **argv) {
         Check(he, 3, 64, 17, 7, 0, 2);
         Check(he, 1, 2, 7, 3, 1, 1);
         Check(he, 3, 5, 7, 3, 2, 4);
+        if (po2 && q.size() == 2) {
+            for (int prepare : {1, 2}) {
+                Check(he, 5, 9, 17, 3, 4, 3, prepare);
+                Check(he, 3, 5, 7, 3, 2, 4, prepare);
+            }
+        }
         he.FreeKey();
         std::cout << "PROTOCOL CHECK COMPLETE" << std::endl;
         return 0;

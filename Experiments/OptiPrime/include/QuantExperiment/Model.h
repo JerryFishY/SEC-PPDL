@@ -39,6 +39,7 @@ class QuantizedImageNetModel {
                            std::vector<LayerMetadata> metadata,
                            std::vector<Step> steps);
     Datatype::Tensor<uint64_t> Forward(const Datatype::Tensor<uint64_t> &input, Profile &profile);
+    void PrepareLinearInputs(bool include_product);
     // Public-layout-only planning. No image or model weights are accepted.
     static void Plan(Context &context, const std::vector<LayerMetadata> &metadata,
                      const std::vector<Step> &steps);

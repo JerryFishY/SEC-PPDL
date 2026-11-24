@@ -12,6 +12,7 @@ struct Config {
     LinearBackend linear = LinearBackend::GPU;
     bool preprocess = false, parallel_conversions = true, legacy_conversion = false;
     bool power_of_two = false, ciphertext_inverse = false;
+    bool cuda_graph = false;
     bool empirical_range = false, approximate_relu = false;
     std::string address = "127.0.0.1";
     int activation_ring_bits = 10, accumulator_bits = 32;

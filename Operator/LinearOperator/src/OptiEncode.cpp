@@ -74,9 +74,10 @@ size_t OptiEncodeLayout::OutputIndex(size_t row, size_t column, size_t channel) 
 }
 Datatype::Tensor<uint64_t> OptiEncodeLayout::PackActivation(
     const Datatype::Tensor<uint64_t> &input, uint64_t modulus, size_t threads) const {
-    if (input.shape() != std::vector<size_t>{input_channels, height, width})
+    if (!modulus || input.shape() != std::vector<size_t>{input_channels, height, width})
         throw std::invalid_argument("OptiEncode input shape mismatch");
     Datatype::Tensor<uint64_t> packed({TileCount(), input_blocks, degree});
+    const bool binary_ring = (modulus & (modulus - 1)) == 0;
     Utils::ParallelFor(TileCount() * input_blocks, threads, [&](size_t task, size_t) {
         const size_t tile = task / input_blocks, block = task % input_blocks;
         const int64_t top = (tile / tile_columns) * tile_height * stride;
@@ -85,9 +86,11 @@ Datatype::Tensor<uint64_t> OptiEncodeLayout::PackActivation(
             const int64_t row = top + static_cast<int64_t>(i) - static_cast<int64_t>(padding);
             const int64_t col = left + static_cast<int64_t>(j) - static_cast<int64_t>(padding);
             if (row < 0 || col < 0 || row >= static_cast<int64_t>(height) || col >= static_cast<int64_t>(width)) continue;
-            for (size_t c = 0; c < channels && block * channels + c < input_channels; ++c)
+            for (size_t c = 0; c < channels && block * channels + c < input_channels; ++c) {
+                const auto value = input(((block * channels + c) * height + size_t(row)) * width + size_t(col));
                 packed(task * degree + channels * (i * patch_width + j) + c) =
-                    input({block * channels + c, static_cast<size_t>(row), static_cast<size_t>(col)}) % modulus;
+                    binary_ring ? value & (modulus - 1) : value % modulus;
+            }
         }
     });
     return packed;
@@ -99,7 +102,9 @@ Datatype::Tensor<uint64_t> OptiEncodeLayout::DepackResult(const Datatype::Tensor
     for (size_t c = 0; c < output_channels; ++c) for (size_t i = 0; i < output_height; ++i)
         for (size_t j = 0; j < output_width; ++j) {
             const size_t tile = (i / tile_height) * tile_columns + j / tile_width;
-            output({c, i, j}) = poly({tile, c / channels, OutputIndex(i % tile_height, j % tile_width, c % channels)});
+            output((c * output_height + i) * output_width + j) =
+                poly((tile * output_blocks + c / channels) * degree +
+                     OutputIndex(i % tile_height, j % tile_width, c % channels));
         }
     return output;
 }

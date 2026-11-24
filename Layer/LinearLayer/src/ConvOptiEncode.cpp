@@ -58,6 +58,9 @@ Conv2DOptiEncode::Conv2DOptiEncode(uint64_t size, uint64_t stride, uint64_t padd
     if (he->server) {
         const auto start = Clock::now();
         weight_pt = PackWeight();
+#ifdef USE_HE_GPU
+        if (options_.cuda_graph && HE->Backend() == DEVICE) PrepareGraph();
+#endif
         stats_.offline_seconds = std::chrono::duration<double>(Clock::now() - start).count();
     }
 }
@@ -193,20 +196,37 @@ Tensor<UnifiedCiphertext> Conv2DOptiEncode::HECompute(const Tensor<UnifiedPlaint
 }
 Tensor<uint64_t> Conv2DOptiEncode::DepackResult(Tensor<uint64_t> &output) {
     auto result = layout_.DepackResult(output);
+    AddBias(result);
+    return result;
+}
+void Conv2DOptiEncode::AddBias(Tensor<uint64_t> &result) const {
     if (options_.add_bias && HE->server) {
         const size_t plane = layout_.output_height * layout_.output_width;
         for (size_t i = 0; i < result.size(); ++i)
             result(i) = (result(i) + bias(i / plane) % HE->plain_mod) % HE->plain_mod;
     }
-    return result;
 }
 Tensor<uint64_t> Conv2DOptiEncode::operator()(Tensor<uint64_t> &input) {
-    auto packed = PackActivation(input);
-    auto encrypted = Operator::SSToHE_coeff(
-        packed, HE, options_.ciphertext_inverse_normalization ? layout_.channels : 1);
-    auto evaluated = HECompute(weight_pt, encrypted);
-    auto shared = Operator::HEToSS_coeff(evaluated, HE);
-    auto output = DepackResult(shared);
+    auto state = std::move(prepared_); // consume even if an operation throws
+    Tensor<uint64_t> output;
+    if (state) {
+        auto correction = OpenMaskedInput(input, *state);
+        if (state->include_product) {
+            output = std::move(state->product_share);
+            if (HE->server) AddRingProduct(correction, output);
+        } else {
+            auto encrypted = ApplyPreparedInput(correction, *state);
+            auto evaluated = HECompute(weight_pt, encrypted);
+            output = ExtractMaskedOutput(evaluated);
+        }
+        AddBias(output);
+    } else {
+        auto encrypted = Operator::SSToHE_coeff(PackActivation(input), HE,
+                              options_.ciphertext_inverse_normalization ? layout_.channels : 1);
+        auto evaluated = HECompute(weight_pt, encrypted);
+        auto shared = Operator::HEToSS_coeff(evaluated, HE);
+        output = DepackResult(shared);
+    }
     output.bitwidth = input.bitwidth;
     output.scale = input.scale + weight.scale;
     return output;

@@ -90,3 +90,15 @@ if(USE_HE_GPU)
             --output ${CMAKE_BINARY_DIR}/test-results/quant_po2_he_gpu)
     set_tests_properties(quant_po2_he_gpu PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE)
 endif()
+
+foreach(backend cpu gpu)
+    if(backend STREQUAL "gpu" AND NOT USE_HE_GPU)
+        continue()
+    endif()
+    add_test(NAME quant_prepared_he_${backend}
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/run.py
+            --kind he --binary $<TARGET_FILE:test_quant_he> --linear ${backend}
+            --po2 1 --plaintext-bits 20 --qbits 50,50
+            --output ${CMAKE_BINARY_DIR}/test-results/quant_prepared_he_${backend})
+    set_tests_properties(quant_prepared_he_${backend} PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE)
+endforeach()

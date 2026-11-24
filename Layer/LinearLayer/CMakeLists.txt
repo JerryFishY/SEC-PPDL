@@ -17,3 +17,10 @@ target_link_libraries(LinearLayer PUBLIC
 )
 
 message(STATUS "LinearLayer_FOUND: ${LinearLayer_FOUND}")
+if(USE_HE_GPU)
+    find_package(CUDAToolkit REQUIRED)
+    add_library(OptiEncodeRingGPU STATIC src/RingConv.cu)
+    set_target_properties(OptiEncodeRingGPU PROPERTIES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED ON)
+    target_link_libraries(OptiEncodeRingGPU PRIVATE CUDA::cudart)
+    target_link_libraries(LinearLayer PRIVATE OptiEncodeRingGPU)
+endif()

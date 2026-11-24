@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
         Config cfg;
         std::string bundle, output, qbits;
         int gpu = 0, approximate = 0, count = 1, trace_count = 0, cheetah = 0;
-        int ferret = 1, preprocess = 1;
+        int ferret = 1, preprocess = 1, prepare_he = 0, graph = 0;
         ArgMapping args;
         args.arg("r", cfg.party);
         args.arg("p", cfg.port);
@@ -62,6 +62,8 @@ int main(int argc, char **argv) {
         args.arg("gpu", gpu);
         args.arg("ferret", ferret);
         args.arg("prep", preprocess);
+        args.arg("graph", graph);
+        args.arg("prepare_he", prepare_he);
         args.arg("approx_relu", approximate);
         args.arg("count", count);
         args.arg("trace", trace_count);
@@ -82,6 +84,7 @@ int main(int argc, char **argv) {
         cfg.approximate_relu = approximate;
         cfg.ot = ferret ? OTBackend::Ferret : OTBackend::IKNP;
         cfg.preprocess = preprocess;
+        cfg.cuda_graph = graph;
         if (!qbits.empty()) {
             cfg.ciphertext_prime_bits.clear();
             std::istringstream primes(qbits);
@@ -152,6 +155,12 @@ int main(int argc, char **argv) {
             const auto start = Clock::now();
             const auto start_bytes = context.Bytes();
             context.Preprocess();
+            const auto before_he = Clock::now();
+            const auto before_he_bytes = context.Bytes();
+            if (prepare_he) model.PrepareLinearInputs(prepare_he == 2);
+            const double he_offline_seconds = prepare_he
+                ? std::chrono::duration<double>(Clock::now() - before_he).count() : 0;
+            const uint64_t he_offline_bytes = context.Bytes() - before_he_bytes;
             context.Sync();
             const auto online = Clock::now();
             const auto online_bytes = context.Bytes();
@@ -172,6 +181,8 @@ int main(int argc, char **argv) {
                       << ",\"online_bytes\":" << finish_bytes - online_bytes
                       << ",\"offline_seconds\":"
                       << std::chrono::duration<double>(online - start).count()
+                      << ",\"he_offline_seconds\":" << he_offline_seconds
+                      << ",\"he_offline_bytes\":" << he_offline_bytes
                       << ",\"offline_bytes\":" << online_bytes - start_bytes
                       << ",\"linear_seconds\":" << linear_seconds
                       << ",\"linear_bytes\":" << linear_bytes << "}" << std::endl;
