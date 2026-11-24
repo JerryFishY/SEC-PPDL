@@ -156,6 +156,7 @@ QuantizedImageNetModel::QuantizedImageNetModel(Context &context, const Weights *
         (weights && weights->size() != metadata_.size()))
         throw std::invalid_argument("Only the server supplies the quantized weights");
     LinearLayer::OptiEncodeOptions options;
+    options.compact_output = context.config.compact_output;
     options.cuda_graph = context.config.cuda_graph;
     options.threads = context.config.threads;
     options.add_bias = false;

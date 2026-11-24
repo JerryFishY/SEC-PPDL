@@ -9,7 +9,7 @@ using Datatype::Tensor;
 uint64_t Field(int64_t v, uint64_t t) {
     return v < 0 ? (t - uint64_t(-v) % t) % t : uint64_t(v) % t;
 }
-void Check(HE::HEEvaluator &he, size_t ci, size_t co, size_t h, size_t k, size_t c, int pattern, int prepare = 0) {
+void Check(HE::HEEvaluator &he, size_t ci, size_t co, size_t h, size_t k, size_t c, int pattern, int prepare = 0, bool compact_output = false) {
     const uint64_t t = he.plain_mod;
     Tensor<int64_t> x({ci, h, h}), w({co, ci, k, k});
     std::mt19937_64 rng(91 + pattern);
@@ -32,7 +32,8 @@ void Check(HE::HEEvaluator &he, size_t ci, size_t co, size_t h, size_t k, size_t
     options.ciphertext_inverse_normalization = !(t & 1);
     options.channels_per_block = c;
     options.cuda_graph = prepare != 0;
-    if (he.server && prepare)
+    options.compact_output = compact_output;
+    if (he.server && (prepare || compact_output))
         for (size_t o = 0; o < co; ++o) bias(o) = t - 1 - o;
     LinearLayer::Conv2DOptiEncode conv(h, 1, k / 2, weight, bias, &he, options);
     if (prepare) {
@@ -109,6 +110,8 @@ int main(int argc, char **argv) {
         Check(he, 1, 2, 7, 3, 1, 1);
         Check(he, 3, 5, 7, 3, 2, 4);
         if (po2 && q.size() == 2) {
+            Check(he, 5, 9, 17, 3, 4, 3, 0, true);
+            Check(he, 3, 5, 7, 3, 2, 4, 0, true);
             for (int prepare : {1, 2}) {
                 Check(he, 5, 9, 17, 3, 4, 3, prepare);
                 Check(he, 3, 5, 7, 3, 2, 4, prepare);

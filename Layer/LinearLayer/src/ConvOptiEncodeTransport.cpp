@@ -61,12 +61,15 @@ struct OutputTile {
 };
 } // namespace
 
-void Conv2DOptiEncode::PrepareInput(bool include_product) {
+void Conv2DOptiEncode::ValidateCompactTransport() const {
     const auto &context = HE->context->hcontext();
-    if (prepared_) throw std::logic_error("Previous prepared input is still unused");
     if ((HE->plain_mod & (HE->plain_mod - 1)) ||
         context.first_context_data()->parms().coeff_modulus().size() != 1)
-        throw std::invalid_argument("Prepared inputs require a binary ring and one data prime");
+        throw std::invalid_argument("Compact outputs require a binary plaintext ring and one BFV data prime");
+}
+void Conv2DOptiEncode::PrepareInput(bool include_product) {
+    if (prepared_) throw std::logic_error("Previous prepared input is still unused");
+    ValidateCompactTransport();
     if (include_product && HE->plain_mod > (uint64_t(1) << 32))
         throw std::invalid_argument("Prepared ring products support up to 32 plaintext bits");
     auto state = std::make_unique<PreparedInput>();

@@ -30,6 +30,8 @@ parser.add_argument(
     help=argparse.SUPPRESS if imagenet else "Protocol check to run",
 )
 if imagenet:
+    parser.add_argument("--compact-output", action="store_true",
+                        help="Use compact BFV output messages independently of HE preprocessing")
     parser.add_argument("--cuda-graph", action="store_true", help="Cache deterministic GPU layer graphs at model setup")
     prep_he = parser.add_mutually_exclusive_group()
     prep_he.add_argument("--prepare-product", action="store_true", help="Prepare a fresh HE convolution of a random mask per layer and image")
@@ -99,8 +101,8 @@ if imagenet:
         parser.error("--qbits requires at least two prime lengths between 2 and 60")
     if args.cuda_graph and args.linear != "gpu":
         parser.error("--cuda-graph requires --linear gpu")
-    if (args.prepare_he or args.prepare_product) and (baseline or len(primes) != 2):
-        parser.error("--prepare-he requires OptiEncode with one active BFV data prime")
+    if (args.compact_output or args.prepare_he or args.prepare_product) and (baseline or len(primes) != 2):
+        parser.error("Compact BFV outputs require OptiEncode with one active BFV data prime")
     if not args.binary:
         root = Path(__file__).resolve().parents[2]
         build = "build-gpu" if args.linear == "gpu" else "build"
@@ -155,6 +157,8 @@ try:
                 f"address={args.address}",
                 f"cheetah={int(baseline)}",
             ]
+            if args.compact_output:
+                command.append("compact_output=1")
             if args.cuda_graph:
                 command.append("graph=1")
             if args.prepare_he or args.prepare_product:
@@ -230,6 +234,7 @@ if args.kind == "imagenet":
         prepare_he=args.prepare_he,
         prepare_product=args.prepare_product,
         cuda_graph=args.cuda_graph,
+        compact_output=args.compact_output or args.prepare_he or args.prepare_product,
         work_ring_bits=60 if baseline else work_bits,
         shift=shift,
         weight_bits=arith.weight_bits,

@@ -42,6 +42,7 @@ Conv2DOptiEncode::Conv2DOptiEncode(uint64_t size, uint64_t stride, uint64_t padd
     : Conv2D(size, stride, padding, ValidateWeights(size, stride, padding, weights, bias, he, options), bias, he), options_(options),
       layout_(he->polyModulusDegree, size, size, in_channels, out_channels, kernel_size,
               stride, padding, options.channels_per_block, options.tile_output_size) {
+    if (options_.compact_output) ValidateCompactTransport();
     if (!options_.threads) throw std::invalid_argument("OptiEncode threads must be positive");
     if (options_.baby_steps) {
         if (layout_.channels % options_.baby_steps) throw std::invalid_argument("Baby steps must divide the channel block");
@@ -209,24 +210,28 @@ void Conv2DOptiEncode::AddBias(Tensor<uint64_t> &result) const {
 Tensor<uint64_t> Conv2DOptiEncode::operator()(Tensor<uint64_t> &input) {
     auto state = std::move(prepared_); // consume even if an operation throws
     Tensor<uint64_t> output;
-    if (state) {
+    if (state && state->include_product) {
         auto correction = OpenMaskedInput(input, *state);
-        if (state->include_product) {
-            output = std::move(state->product_share);
-            if (HE->server) AddRingProduct(correction, output);
-        } else {
-            auto encrypted = ApplyPreparedInput(correction, *state);
-            auto evaluated = HECompute(weight_pt, encrypted);
-            output = ExtractMaskedOutput(evaluated);
-        }
-        AddBias(output);
+        output = std::move(state->product_share);
+        if (HE->server) AddRingProduct(correction, output);
     } else {
-        auto encrypted = Operator::SSToHE_coeff(PackActivation(input), HE,
-                              options_.ciphertext_inverse_normalization ? layout_.channels : 1);
+        Tensor<UnifiedCiphertext> encrypted;
+        if (state) {
+            auto correction = OpenMaskedInput(input, *state);
+            encrypted = ApplyPreparedInput(correction, *state);
+        } else {
+            encrypted = Operator::SSToHE_coeff(PackActivation(input), HE,
+                options_.ciphertext_inverse_normalization ? layout_.channels : 1);
+        }
         auto evaluated = HECompute(weight_pt, encrypted);
-        auto shared = Operator::HEToSS_coeff(evaluated, HE);
-        output = DepackResult(shared);
+        if (state || options_.compact_output) {
+            output = ExtractMaskedOutput(evaluated);
+        } else {
+            auto shared = Operator::HEToSS_coeff(evaluated, HE);
+            output = DepackResult(shared);
+        }
     }
+    if (state || options_.compact_output) AddBias(output);
     output.bitwidth = input.bitwidth;
     output.scale = input.scale + weight.scale;
     return output;

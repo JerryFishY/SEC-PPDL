@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
         Config cfg;
         std::string bundle, output, qbits;
         int gpu = 0, approximate = 0, count = 1, trace_count = 0, cheetah = 0;
-        int ferret = 1, preprocess = 1, prepare_he = 0, graph = 0;
+        int ferret = 1, preprocess = 1, prepare_he = 0, graph = 0, compact_output = 0;
         ArgMapping args;
         args.arg("r", cfg.party);
         args.arg("p", cfg.port);
@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
         args.arg("ferret", ferret);
         args.arg("prep", preprocess);
         args.arg("graph", graph);
+        args.arg("compact_output", compact_output);
         args.arg("prepare_he", prepare_he);
         args.arg("approx_relu", approximate);
         args.arg("count", count);
@@ -85,6 +86,7 @@ int main(int argc, char **argv) {
         cfg.ot = ferret ? OTBackend::Ferret : OTBackend::IKNP;
         cfg.preprocess = preprocess;
         cfg.cuda_graph = graph;
+        cfg.compact_output = compact_output;
         if (!qbits.empty()) {
             cfg.ciphertext_prime_bits.clear();
             std::istringstream primes(qbits);

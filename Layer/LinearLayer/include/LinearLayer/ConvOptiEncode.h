@@ -17,6 +17,7 @@ struct OptiEncodeOptions {
     // operation (BumbleBee ZeroGap normalization). Weights remain unscaled.
     bool ciphertext_inverse_normalization = false;
     bool cuda_graph = false;
+    bool compact_output = false; // Send only the masked output coefficients needed by the client.
 };
 struct OptiEncodeStats {
     size_t input_ciphertexts = 0, output_ciphertexts = 0;
@@ -60,6 +61,7 @@ private:
 #ifdef USE_HE_GPU
     std::shared_ptr<RingConvGPU> ring_gpu_;
 #endif
+    void ValidateCompactTransport() const;
     Tensor<uint64_t> ExtractMaskedOutput(Tensor<UnifiedCiphertext> &evaluated);
     void AddBias(Tensor<uint64_t> &output) const;
     OptiEncodeOptions options_;
