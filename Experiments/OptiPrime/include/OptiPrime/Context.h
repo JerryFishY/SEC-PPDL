@@ -1,10 +1,10 @@
 #pragma once
-#include <QuantExperiment/Config.h>
+#include <OptiPrime/Config.h>
 #include <HE/HE.h>
 #include <NonlinearOperator/FixPoint.h>
 #include <functional>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 class Context {
   public:
     explicit Context(Config config);
@@ -40,4 +40,4 @@ class Context {
                        const std::function<void(Datatype::Tensor<uint64_t> &, size_t)> &function,
                        bool parallel);
 };
-} // namespace QuantExperiment
+} // namespace OptiPrime

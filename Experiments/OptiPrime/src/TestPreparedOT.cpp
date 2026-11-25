@@ -1,4 +1,4 @@
-#include <QuantExperiment/PreparedOT.h>
+#include <OptiPrime/PreparedOT.h>
 #include <Utils/ArgMapping/ArgMapping.h>
 #include <array>
 #include <chrono>
@@ -8,7 +8,7 @@
 
 namespace {
 using IO = Utils::NetIO;
-using Pack = QuantExperiment::PreparedOTPack;
+using Pack = OptiPrime::PreparedOTPack;
 uint64_t Mask(int b) {
     return b == 64 ? UINT64_MAX : (uint64_t(1) << b) - 1;
 }
@@ -102,8 +102,8 @@ int main(int argc, char **argv) {
                                ("sec-ppdl-ot-test-" + std::to_string(getpid()));
         {
             Pack pack(&io, party,
-                      backend ? QuantExperiment::OTBackend::Ferret
-                              : QuantExperiment::OTBackend::IKNP,
+                      backend ? OptiPrime::OTBackend::Ferret
+                              : OptiPrime::OTBackend::IKNP,
                       directory);
             pack.BeginPlanning();
             Suite(pack, io, party, false);

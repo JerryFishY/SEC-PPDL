@@ -15,7 +15,7 @@ from torchvision import transforms
 
 from model import IntegerModel, ReleasedModel, calibrate, input_byte
 from bundle import Arithmetic, checkpoint, read_arithmetic
-from architecture import BLOCKS
+from architecture import MODELS
 
 
 class Images(Dataset):
@@ -177,7 +177,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--batch", type=int, default=32)
     parser.add_argument("--secure-images", type=int, default=32)
-    parser.add_argument("--model", choices=BLOCKS, default=None)
+    parser.add_argument("--model", choices=MODELS, default=None)
     parser.add_argument("--weights-source", choices=("aimet", "torchvision"))
     parser.add_argument("--weight-bits", type=int, choices=range(2, 9))
     parser.add_argument("--activation-bits", type=int, choices=range(2, 17))

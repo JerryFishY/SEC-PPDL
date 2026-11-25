@@ -1,7 +1,9 @@
-#include <QuantExperiment/Model.h>
-#include <QuantExperiment/SharedSelection.h>
+#include <OptiPrime/Model.h>
+#include "../falcon/Layer.h"
+#include <fstream>
+#include <OptiPrime/SharedSelection.h>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 using Datatype::Tensor;
 namespace {
 void ValidateTopology(const std::vector<LayerMetadata> &layers, const std::vector<Step> &steps) {
@@ -12,7 +14,7 @@ void ValidateTopology(const std::vector<LayerMetadata> &layers, const std::vecto
         if (step.op == Operation::Conv) {
             const auto &s = layers.at(count++).shape;
             if (s.size != size || s.input_channels != channels || !s.output_channels || !s.stride ||
-                !s.kernel || size + 2 * s.padding < s.kernel)
+                (s.depthwise && channels != s.output_channels) || !s.kernel || size + 2 * s.padding < s.kernel)
                 throw std::invalid_argument("Invalid convolution dimensions in model layout");
             size = (size + 2 * s.padding - s.kernel) / s.stride + 1;
             channels = s.output_channels;
@@ -142,20 +144,34 @@ void AfterConvolution(Context &context, const LayerMetadata &meta, Tensor<uint64
                             context.config.legacy_conversion ? context.config.accumulator_bits
                                                              : meta.clamp_bits,
                             &profile.requantization_detail);
+        if (meta.relu6 && context.config.approximate_relu)
+            output = Clamp(context, output, 0, context.config.ActivationMax(),
+                           context.config.activation_ring_bits);
         if (profile.observe_activation)
             profile.observe_activation(output);
     }
 }
 } // namespace
+QuantizedImageNetModel::~QuantizedImageNetModel() = default;
+
 QuantizedImageNetModel::QuantizedImageNetModel(Context &context, const Weights *weights,
                                                std::vector<LayerMetadata> metadata,
                                                std::vector<Step> steps)
     : context_(context), metadata_(std::move(metadata)), steps_(std::move(steps)) {
     ValidateTopology(metadata_, steps_);
+    falcon_layers_.resize(metadata_.size());
+    std::ifstream plan;
+    if (!context.config.falcon_plan.empty()) {
+        plan.open(context.config.falcon_plan);
+        if (!plan || context.config.linear != LinearBackend::CPU || !context.config.compact_output)
+            throw std::invalid_argument("Falcon requires a readable plan and CPU compact output");
+    }
     if ((context.config.party == 1) != (weights != nullptr) ||
         (weights && weights->size() != metadata_.size()))
         throw std::invalid_argument("Only the server supplies the quantized weights");
     LinearLayer::OptiEncodeOptions options;
+    options.compact_output = context.config.compact_output;
+    options.cuda_graph = context.config.cuda_graph;
     options.threads = context.config.threads;
     options.add_bias = false;
     options.output_mod_switches = context.config.output_mod_switches;
@@ -167,7 +183,10 @@ QuantizedImageNetModel::QuantizedImageNetModel(Context &context, const Weights *
              (index + 1 == metadata_.size() || m.multipliers.size() != s.output_channels)) ||
             m.weight_bits < 2 || m.weight_bits > 8)
             throw std::invalid_argument("Invalid imported quantization parameters");
-        Tensor<uint64_t> w({s.output_channels, s.input_channels, s.kernel, s.kernel}),
+        options.depthwise = s.depthwise;
+        if (s.depthwise && context.config.linear == LinearBackend::Cheetah)
+            throw std::invalid_argument("Depthwise ImageNet layers require the OptiEncode CPU or GPU backend");
+        Tensor<uint64_t> w({s.output_channels, s.depthwise ? 1 : s.input_channels, s.kernel, s.kernel}),
             b({s.output_channels});
         if (weights) {
             const auto &p = (*weights)[index];
@@ -200,7 +219,16 @@ QuantizedImageNetModel::QuantizedImageNetModel(Context &context, const Weights *
                     throw std::invalid_argument("Bias exceeds the certified dyadic clamp bound");
             }
         }
-        if (context.config.linear == LinearBackend::Cheetah ||
+        if (s.depthwise && plan.is_open()) {
+            FalconExperiment::Shape p{};
+            if (!(plan >> p.h >> p.channels >> p.stride >> p.rows >> p.cols >> p.cx >> p.cw) ||
+                p.h != s.size || p.channels != s.input_channels || p.stride != s.stride ||
+                s.kernel != 3 || s.padding != 1)
+                throw std::invalid_argument("Falcon plan differs from the bundle");
+            falcon_layers_[index] = std::make_unique<FalconExperiment::Layer>(
+                *context.he, p, w, options.threads);
+            layers_.emplace_back(nullptr);
+        } else if (context.config.linear == LinearBackend::Cheetah ||
             (s.size == 1 && s.input_channels >= 4096)) {
             auto layer = std::make_unique<LinearLayer::Conv2DCheetah>(
                 s.size, s.stride, s.padding, w, b, context.he.get(),
@@ -209,7 +237,9 @@ QuantizedImageNetModel::QuantizedImageNetModel(Context &context, const Weights *
         } else
             layers_.emplace_back(std::make_unique<LinearLayer::Conv2DOptiEncode>(
                 s.size, s.stride, s.padding, w, b, context.he.get(), options));
+        biases_.push_back(std::move(b));
     }
+    if (plan.is_open() && !(plan >> std::ws).eof()) throw std::invalid_argument("Trailing Falcon plan rows");
 }
 Tensor<uint64_t> QuantizedImageNetModel::Convolve(size_t index, Tensor<uint64_t> input,
                                                   Profile &profile) {
@@ -219,25 +249,30 @@ Tensor<uint64_t> QuantizedImageNetModel::Convolve(size_t index, Tensor<uint64_t>
     const bool final = index + 1 == metadata_.size();
     {
         Timer timer(context_, final ? profile.fully_connected : profile.convolution);
-        output = (*layers_[index])(input);
+        if (meta.shape.depthwise) {
+            Timer dw(context_, profile.depthwise);
+            output = falcon_layers_[index] ? falcon_layers_[index]->Forward(input) : (*layers_[index])(input);
+        } else output = (*layers_[index])(input);
     }
     {
         Timer timer(context_, final ? profile.fully_connected : profile.convolution);
-        if (!meta.multipliers.empty()) {
-            const size_t plane = output.size() / meta.multipliers.size();
-            for (size_t i = 0; i < output.size(); ++i)
-                output(i) =
-                    context_.config.power_of_two
-                        ? (output(i) * meta.multipliers[i / plane]) & (context_.he->plain_mod - 1)
-                        : uint64_t(__uint128_t(output(i)) * meta.multipliers[i / plane] %
-                                   context_.he->plain_mod);
-        }
-        if (context_.config.party == 1 && !final) {
-            const auto &bias = layers_[index]->bias;
-            const size_t plane = output.size() / bias.size();
-            for (size_t i = 0; i < output.size(); ++i)
-                output(i) = (output(i) + Field(bias(i / plane), context_.he->plain_mod)) %
-                            context_.he->plain_mod;
+        const bool add_bias = context_.config.party == 1 && !final;
+        if (add_bias || !meta.multipliers.empty()) {
+            const uint64_t t = context_.he->plain_mod;
+            const size_t channels = meta.shape.output_channels;
+            const size_t plane = output.size() / channels;
+            for (size_t c = 0; c < channels; ++c) {
+                const uint64_t gain = meta.multipliers.empty() ? 1 : meta.multipliers[c];
+                const uint64_t offset = add_bias ? Field(biases_[index](c), t) : 0;
+                auto *values = output.data().data() + c * plane;
+                if (context_.config.power_of_two) {
+                    for (size_t p = 0; p < plane; ++p)
+                        values[p] = (values[p] * gain + offset) & (t - 1);
+                } else {
+                    for (size_t p = 0; p < plane; ++p)
+                        values[p] = (__uint128_t(values[p]) * gain + offset) % t;
+                }
+            }
         }
     }
     AfterConvolution(context_, meta, output, final, profile);
@@ -247,7 +282,7 @@ Tensor<uint64_t> QuantizedImageNetModel::Convolve(size_t index, Tensor<uint64_t>
                               context_.config.ClassifierBits());
         if (context_.config.party == 1)
             for (size_t i = 0; i < output.size(); ++i)
-                output(i) += layers_[index]->bias(i);
+                output(i) += biases_[index](i);
         Reduce(output, context_.config.ClassifierBits());
     }
     return output;
@@ -259,6 +294,13 @@ Tensor<uint64_t> QuantizedImageNetModel::Forward(const Tensor<uint64_t> &input, 
         context_, input,
         [&](size_t index, Tensor<uint64_t> x) { return Convolve(index, std::move(x), profile); },
         profile, steps_, metadata_);
+}
+void QuantizedImageNetModel::PrepareLinearInputs(bool include_product) {
+    if (context_.config.linear == LinearBackend::Cheetah)
+        throw std::invalid_argument("Prepared HE inputs require OptiEncode");
+    if (!context_.config.falcon_plan.empty()) throw std::invalid_argument("Falcon comparison uses online HE");
+    for (auto &layer : layers_)
+        if (auto *conv = dynamic_cast<LinearLayer::Conv2DOptiEncode *>(layer.get())) conv->PrepareInput(include_product);
 }
 void QuantizedImageNetModel::Plan(Context &context, const std::vector<LayerMetadata> &metadata,
                                   const std::vector<Step> &steps) {
@@ -285,4 +327,4 @@ void QuantizedImageNetModel::Plan(Context &context, const std::vector<LayerMetad
     Classify(context, std::move(logits));
     context.EndPlanning();
 }
-} // namespace QuantExperiment
+} // namespace OptiPrime

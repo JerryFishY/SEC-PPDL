@@ -2,7 +2,7 @@
 #include <Datatype/Tensor.h>
 #include <NonlinearOperator/FixPoint.h>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 // Signed ring shares; operands/differences must fit the signed bitwidth.
 Datatype::Tensor<uint64_t> MaximumShared(const Datatype::Tensor<uint64_t> &left,
     const Datatype::Tensor<uint64_t> &right, NonlinearOperator::FixPoint<uint64_t> &fixpoint, int bitwidth);
@@ -16,4 +16,4 @@ Datatype::Tensor<uint64_t> MaxPoolShared(const Datatype::Tensor<uint64_t> &input
 // Returns an additive share of the index; ties choose the first index.
 Datatype::Tensor<uint64_t> ArgMaxShared(const Datatype::Tensor<uint64_t> &input,
     NonlinearOperator::FixPoint<uint64_t> &fixpoint, int bitwidth);
-} // namespace QuantExperiment
+} // namespace OptiPrime

@@ -1,4 +1,4 @@
-#include <QuantExperiment/Protocols.h>
+#include <OptiPrime/Protocols.h>
 #include <Utils/ArgMapping/ArgMapping.h>
 #include <iostream>
 #include <random>
@@ -15,7 +15,7 @@ Tensor<uint64_t> Share(const Tensor<int64_t> &plain, int party, int bits) {
     }
     return result;
 }
-Tensor<int64_t> Open(QuantExperiment::Context &context, const Tensor<uint64_t> &input, int bits,
+Tensor<int64_t> Open(OptiPrime::Context &context, const Tensor<uint64_t> &input, int bits,
                      bool field = false) {
     Tensor<uint64_t> peer(input.shape());
     auto &io = *context.he->IO;
@@ -45,8 +45,8 @@ void Check(const Tensor<int64_t> &a, const Tensor<int64_t> &b, const char *label
     if (a.shape() != b.shape() || a.data() != b.data())
         throw std::runtime_error(label);
 }
-void Suite(QuantExperiment::Context &context, bool verify) {
-    using namespace QuantExperiment;
+void Suite(OptiPrime::Context &context, bool verify) {
+    using namespace OptiPrime;
     Tensor<int64_t> plain({517});
     for (size_t i = 0; i < plain.size(); ++i)
         plain(i) = int64_t(i % 511) - 255;
@@ -161,9 +161,9 @@ void Suite(QuantExperiment::Context &context, bool verify) {
 } // namespace
 int main(int argc, char **argv) {
     try {
-        QuantExperiment::Config cfg;
+        OptiPrime::Config cfg;
         int ot = 0, prep = 1, parallel = 1, legacy = 0, po2 = 0, po2bits = 26;
-        cfg.linear = QuantExperiment::LinearBackend::CPU;
+        cfg.linear = OptiPrime::LinearBackend::CPU;
         cfg.threads = 4;
         ArgMapping args;
         args.arg("r", cfg.party);
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
         args.arg("po2", po2);
         args.arg("po2bits", po2bits);
         args.parse(argc, argv);
-        cfg.ot = ot ? QuantExperiment::OTBackend::Ferret : QuantExperiment::OTBackend::IKNP;
+        cfg.ot = ot ? OptiPrime::OTBackend::Ferret : OptiPrime::OTBackend::IKNP;
         cfg.preprocess = prep;
         cfg.parallel_conversions = parallel;
         cfg.legacy_conversion = legacy;
@@ -195,7 +195,7 @@ int main(int argc, char **argv) {
             cfg.accumulator_bits = po2bits;
             cfg.plaintext_bits = po2bits + 1;
         }
-        QuantExperiment::Context context(cfg);
+        OptiPrime::Context context(cfg);
         context.BeginPlanning();
         Suite(context, false);
         context.EndPlanning();

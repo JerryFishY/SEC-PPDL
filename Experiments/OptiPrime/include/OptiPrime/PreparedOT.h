@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 enum class OTBackend { IKNP, Ferret };
 enum class OTPhase { Live, Planning, Prepared };
 
@@ -30,4 +30,4 @@ class PreparedOTPack : public OTPrimitive::OTPack<Utils::NetIO> {
     class Impl;
     std::unique_ptr<Impl> impl_;
 };
-} // namespace QuantExperiment
+} // namespace OptiPrime

@@ -1,8 +1,8 @@
 #pragma once
-#include <QuantExperiment/Model.h>
+#include <OptiPrime/Model.h>
 #include <filesystem>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 // Layout and scales are public. Only the model owner needs weights.bin.
 class ImageNetBundle {
   public:
@@ -16,4 +16,4 @@ class ImageNetBundle {
     std::filesystem::path root_;
     int work_bits_, activation_bits_ = 8;
 };
-} // namespace QuantExperiment
+} // namespace OptiPrime

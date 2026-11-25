@@ -30,6 +30,14 @@ parser.add_argument(
     help=argparse.SUPPRESS if imagenet else "Protocol check to run",
 )
 if imagenet:
+    parser.add_argument("--falcon-plan", help="Replace only CPU depthwise layers with Falcon using this public plan")
+    parser.add_argument("--compact-output", action="store_true",
+                        help="Use compact BFV output messages independently of HE preprocessing")
+    parser.add_argument("--cuda-graph", action="store_true", help="Cache deterministic GPU layer graphs at model setup")
+    prep_he = parser.add_mutually_exclusive_group()
+    prep_he.add_argument("--prepare-product", action="store_true", help="Prepare a fresh HE convolution of a random mask per layer and image")
+    prep_he.add_argument("--prepare-he", action="store_true",
+                        help="Prepare fresh HE input masks per image and send compact masked outputs")
     parser.add_argument(
         "--bundle", required=True, help="Exported graph, weights and public test images"
     )
@@ -92,6 +100,12 @@ if imagenet:
     primes = args.qbits.split(",")
     if len(primes) < 2 or any(not p.isdecimal() or not 2 <= int(p) <= 60 for p in primes):
         parser.error("--qbits requires at least two prime lengths between 2 and 60")
+    if args.falcon_plan and (args.linear != "cpu" or not args.compact_output or args.prepare_he or args.prepare_product):
+        parser.error("--falcon-plan requires CPU compact output with online HE")
+    if args.cuda_graph and args.linear != "gpu":
+        parser.error("--cuda-graph requires --linear gpu")
+    if (args.compact_output or args.prepare_he or args.prepare_product) and (baseline or len(primes) != 2):
+        parser.error("Compact BFV outputs require OptiEncode with one active BFV data prime")
     if not args.binary:
         root = Path(__file__).resolve().parents[2]
         build = "build-gpu" if args.linear == "gpu" else "build"
@@ -146,6 +160,14 @@ try:
                 f"address={args.address}",
                 f"cheetah={int(baseline)}",
             ]
+            if args.falcon_plan:
+                command.append(f"falcon_plan={Path(args.falcon_plan).resolve()}")
+            if args.compact_output:
+                command.append("compact_output=1")
+            if args.cuda_graph:
+                command.append("graph=1")
+            if args.prepare_he or args.prepare_product:
+                command.append(f"prepare_he={2 if args.prepare_product else 1}")
             if not baseline and (args.ot != "ferret" or not args.preprocess):
                 command.extend([f'ferret={int(args.ot == "ferret")}', f"prep={args.preprocess}"])
         elif args.kind != "he":
@@ -214,6 +236,11 @@ if args.kind == "imagenet":
     report["config"].update(
         bundle=str(Path(args.bundle).resolve()),
         mode=args.mode,
+        falcon_plan=args.falcon_plan,
+        prepare_he=args.prepare_he,
+        prepare_product=args.prepare_product,
+        cuda_graph=args.cuda_graph,
+        compact_output=args.compact_output or args.prepare_he or args.prepare_product,
         work_ring_bits=60 if baseline else work_bits,
         shift=shift,
         weight_bits=arith.weight_bits,
@@ -233,15 +260,24 @@ if args.kind == "imagenet":
         raise RuntimeError("Incomplete two-party timing records")
     report["runs"] = []
     for pair in zip(*parties):
-        wall = max(pair, key=lambda r: r["online_seconds"])
         metrics = {
             k: sum(r[k] for r in pair) for k in ("linear_bytes", "offline_bytes", "online_bytes")
         }
         metrics.update(
-            linear_seconds=wall["linear_seconds"],
-            online_seconds=wall["online_seconds"],
+            # A party can finish a send before its peer finishes the corresponding
+            # convolution. Overall finish order is unrelated to this critical path.
+            linear_seconds=max(p["linear_seconds"] for p in pair),
+            online_seconds=max(p["online_seconds"] for p in pair),
             offline_seconds=max(p["offline_seconds"] for p in pair),
         )
+        if all("depthwise_seconds" in p for p in pair):
+            # Use the same party for both linear time components so their sum is additive.
+            critical = max(pair, key=lambda p: p["linear_seconds"])
+            metrics["depthwise_seconds"] = critical["depthwise_seconds"]
+            metrics["depthwise_bytes"] = sum(p["depthwise_bytes"] for p in pair)
+        if all("he_offline_seconds" in p for p in pair):
+            metrics["he_offline_seconds"] = max(p["he_offline_seconds"] for p in pair)
+            metrics["he_offline_bytes"] = sum(p["he_offline_bytes"] for p in pair)
         for unit in ("bytes", "seconds"):
             metrics["nonlinear_" + unit] = metrics["online_" + unit] - metrics["linear_" + unit]
         report["runs"].append(metrics)

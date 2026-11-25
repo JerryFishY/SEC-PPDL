@@ -10,7 +10,7 @@ using Datatype::Tensor;
 uint64_t Residue(int64_t value, uint64_t modulus) {
     return value < 0 ? modulus - static_cast<uint64_t>(-value) % modulus : static_cast<uint64_t>(value) % modulus;
 }
-struct Case { size_t ci, co, h, k, stride, padding, channels, tile; bool zero, dense; size_t baby = 0; };
+struct Case { size_t ci, co, h, k, stride, padding, channels, tile; bool zero, dense; size_t baby = 0; bool depthwise = false; };
 Tensor<uint64_t> Reference(const Tensor<uint64_t> &input, const Tensor<uint64_t> &weight,
     const Tensor<uint64_t> &bias, const Case &tc, uint64_t modulus) {
     const size_t out_size = (tc.h + 2 * tc.padding - tc.k) / tc.stride + 1;
@@ -18,13 +18,13 @@ Tensor<uint64_t> Reference(const Tensor<uint64_t> &input, const Tensor<uint64_t>
     for (size_t o = 0; o < tc.co; ++o) for (size_t i = 0; i < out_size; ++i)
         for (size_t j = 0; j < out_size; ++j) {
             uint64_t sum = bias(o);
-            for (size_t c = 0; c < tc.ci; ++c) for (size_t a = 0; a < tc.k; ++a)
+            for (size_t c = tc.depthwise ? o : 0; c < (tc.depthwise ? o + 1 : tc.ci); ++c) for (size_t a = 0; a < tc.k; ++a)
                 for (size_t b = 0; b < tc.k; ++b) {
                     const int64_t row = static_cast<int64_t>(i * tc.stride + a) - tc.padding;
                     const int64_t col = static_cast<int64_t>(j * tc.stride + b) - tc.padding;
                     if (row < 0 || col < 0 || row >= static_cast<int64_t>(tc.h) || col >= static_cast<int64_t>(tc.h)) continue;
                     sum = static_cast<uint64_t>((static_cast<__uint128_t>(input({c, size_t(row), size_t(col)})) *
-                        weight({o, c, a, b}) + sum) % modulus);
+                        weight({o, tc.depthwise ? 0 : c, a, b}) + sum) % modulus);
                 }
             output({o, i, j}) = sum;
         }
@@ -34,7 +34,7 @@ void RunCase(const Case &tc, size_t index, HE::HEEvaluator &he, int threads, int
     const uint64_t modulus = he.plain_mod;
     std::mt19937_64 rng(1777 + index);
     Tensor<uint64_t> input({tc.ci, tc.h, tc.h}), plain_input(input.shape());
-    Tensor<uint64_t> weights({tc.co, tc.ci, tc.k, tc.k}), plain_weights(weights.shape());
+    Tensor<uint64_t> weights({tc.co, tc.depthwise ? 1 : tc.ci, tc.k, tc.k}), plain_weights(weights.shape());
     Tensor<uint64_t> bias({tc.co}), plain_bias({tc.co});
     for (size_t i = 0; i < input.size(); ++i) {
         const uint64_t value = tc.dense ? rng() % modulus : Residue(int64_t(rng() % 19) - 9, modulus);
@@ -55,6 +55,7 @@ void RunCase(const Case &tc, size_t index, HE::HEEvaluator &he, int threads, int
     options.channels_per_block = tc.channels;
     options.tile_output_size = tc.tile;
     options.baby_steps = tc.baby;
+    options.depthwise = tc.depthwise;
     LinearLayer::Conv2DOptiEncode conv(tc.h, tc.stride, tc.padding, weights, bias, &he, options);
     const auto reference = Reference(plain_input, plain_weights, plain_bias, tc, modulus);
     for (int call = 0; call < repeat; ++call) {
@@ -143,6 +144,14 @@ int main(int argc, char **argv) {
         cases.push_back({5,7,4,3,1,1,8,0,false,false,1});
         cases.push_back({5,7,4,3,1,1,8,0,false,false,8});
         cases.push_back({3,5,7,1,3,0,4,0,false,false});
+        // With a single packed channel, this sum spans multiple GPU product batches and a tail.
+        cases.push_back({65,3,3,1,1,0,1,0,false,true});
+        // Full tiles, tail channels, zero filters, and a non-default giant-step split.
+        cases.push_back({9,9,7,3,2,1,4,2,false,false,1,true});
+        cases.push_back({7,7,5,3,1,1,4,2,true,false,0,true});
+        cases.push_back({5,5,8,3,1,0,4,0,false,true,4,true});
+        // Interior BSGS split with independent depthwise blocks and a one-lane tail.
+        cases.push_back({65,65,14,3,1,1,16,0,false,false,4,true});
         cases.push_back({64,128,14,3,1,1,0,0,false,false});
         for (size_t i = 0; i < cases.size(); ++i) RunCase(cases[i], i, he, threads, repeat, benchmark && i == cases.size() - 1);
         he.FreeKey();

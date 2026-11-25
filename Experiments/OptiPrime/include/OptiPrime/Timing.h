@@ -1,8 +1,8 @@
 #pragma once
-#include <QuantExperiment/Context.h>
+#include <OptiPrime/Context.h>
 #include <chrono>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 struct Component {
     double seconds = 0;
     uint64_t bytes = 0;
@@ -25,4 +25,4 @@ class Timer {
     uint64_t before_;
     std::chrono::steady_clock::time_point start_;
 };
-} // namespace QuantExperiment
+} // namespace OptiPrime

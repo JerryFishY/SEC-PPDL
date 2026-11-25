@@ -1,7 +1,7 @@
-#include <QuantExperiment/Bundle.h>
+#include <OptiPrime/Bundle.h>
 #include <fstream>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 using Datatype::Tensor;
 namespace fs = std::filesystem;
 namespace {
@@ -54,10 +54,12 @@ void ReadLayout(const fs::path &root, std::vector<LayerMetadata> &layers,
     for (std::string op; in >> op;) {
         Step s{};
         in >> s.input;
-        if (op == "conv") {
+        if (op == "conv" || op == "conv6" || op == "dwconv6" || op == "dwconv") {
             s.op = Operation::Conv;
             LayerMetadata m;
             auto &a = m.shape;
+            a.depthwise = op == "dwconv6" || op == "dwconv";
+            m.relu6 = op == "conv6" || op == "dwconv6";
             in >> a.size >> a.input_channels >> a.output_channels >> a.kernel >> a.stride >>
                 a.padding >> m.input_zero_point >> m.output_zero_point;
             layers.push_back(m);
@@ -123,7 +125,7 @@ Weights ImageNetBundle::LoadWeights() const {
     std::ifstream weight_file(root_ / "weights.bin", std::ios::binary);
     for (const auto &m : metadata) {
         const auto &s = m.shape;
-        Parameters p{Tensor<uint64_t>({s.output_channels, s.input_channels, s.kernel, s.kernel}),
+        Parameters p{Tensor<uint64_t>({s.output_channels, s.depthwise ? 1 : s.input_channels, s.kernel, s.kernel}),
                      Tensor<uint64_t>({s.output_channels})};
         auto w = Read<int8_t>(weight_file, p.weight.size());
         auto b = Read<int32_t>(weight_file, p.bias.size());
@@ -148,4 +150,4 @@ Config ImageNetBundle::InferenceConfig() const {
         cfg.ciphertext_prime_bits.push_back(50);
     return cfg;
 }
-} // namespace QuantExperiment
+} // namespace OptiPrime

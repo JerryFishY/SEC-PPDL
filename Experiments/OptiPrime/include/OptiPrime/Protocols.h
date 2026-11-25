@@ -1,7 +1,7 @@
 #pragma once
-#include <QuantExperiment/Timing.h>
+#include <OptiPrime/Timing.h>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 struct RequantizationProfile {
     Component sign, mux, shift;
 };
@@ -18,4 +18,4 @@ Datatype::Tensor<uint64_t> GlobalAverage(Context &context, Datatype::Tensor<uint
                                          int sum_bits = 0);
 void Reduce(Datatype::Tensor<uint64_t> &input, int bits);
 Datatype::Tensor<uint64_t> Classify(Context &context, Datatype::Tensor<uint64_t> logits);
-} // namespace QuantExperiment
+} // namespace OptiPrime

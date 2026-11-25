@@ -1,7 +1,7 @@
-#include <QuantExperiment/Protocols.h>
-#include <QuantExperiment/SharedSelection.h>
+#include <OptiPrime/Protocols.h>
+#include <OptiPrime/SharedSelection.h>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 using Datatype::Tensor;
 Tensor<uint64_t> Classify(Context &context, Tensor<uint64_t> logits) {
     const int width = context.config.ArgmaxBits();
@@ -214,4 +214,4 @@ Tensor<uint64_t> GlobalAverage(Context &context, Tensor<uint64_t> input, int sum
     quotient.reshape({channels, 1, 1});
     return quotient;
 }
-} // namespace QuantExperiment
+} // namespace OptiPrime

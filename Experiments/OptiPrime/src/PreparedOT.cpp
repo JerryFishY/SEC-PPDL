@@ -1,4 +1,4 @@
-#include <QuantExperiment/PreparedOT.h>
+#include <OptiPrime/PreparedOT.h>
 #include <OTPrimitive/cf2_ot_pack.h>
 #include <OTPrimitive/cheetah_ot_pack.h>
 #include <algorithm>
@@ -7,7 +7,7 @@
 #include <limits>
 #include <stdexcept>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 namespace {
 using IO = Utils::NetIO;
 using BaseOT = OTPrimitive::OT<IO>;
@@ -675,4 +675,4 @@ uint64_t PreparedOTPack::PlannedRows() const {
 uint64_t PreparedOTPack::PlannedRawCOTs() const {
     return impl_->forward_raw.raw + impl_->reverse_raw.raw;
 }
-} // namespace QuantExperiment
+} // namespace OptiPrime

@@ -37,9 +37,9 @@ Tests use a two-party protocol. Start **Server** (`r=1`) before **Client** (`r=2
 ./build/Test/test_cir_conv r=2 p=1234     # Terminal 2 (Client)
 ```
 
-### OptiEncode convolution
+### [OptiEncode convolution](https://jerryfishy.github.io/OptiPrime/)
 
-OptiEncode is the CPU/GPU encrypted convolution protocol from OptiPrime (MICRO 2026). For end-to-end quantized inference on ResNet or VGG, see the [experiment guide](Experiments/OptiPrime/README.md) and [network definitions](Experiments/OptiPrime/imagenet/architecture.py). [Paper](https://arxiv.org/abs/2609.16898) · [Citation](#citation)
+OptiEncode is the CPU/GPU encrypted convolution protocol from OptiPrime (MICRO 2026). For end-to-end quantized inference on ResNet, VGG, or MobileNetV2, see the [experiment guide](Experiments/OptiPrime/README.md) and [network definitions](Experiments/OptiPrime/imagenet/architecture.py). [Paper](https://arxiv.org/abs/2609.16898) · [Citation](#citation)
 
 From the repository root, run the CPU suite after building with `BUILD_TESTING=ON` (the default). It checks the encoding algebra, two-party convolution against a clear reference, default Galois keys, and FaceResNet integration. CTest starts both parties automatically.
 
@@ -54,6 +54,8 @@ cmake -S . -B build-gpu -DUSE_HE_GPU=ON -DBUILD_TESTING=ON
 cmake --build build-gpu --target test_optiencode_conv -j8
 ctest --test-dir build-gpu --output-on-failure -R '^optiencode_gpu_conv$'
 ```
+
+For the post-publication MobileNetV2 depthwise extension, set `options.depthwise = true` with compact `[channels, 1, kernel, kernel]` weights. [Depthwise derivation](Experiments/OptiPrime/depthwise.md)
 
 To call the operator from C++, link the CMake target `LinearLayer`. Each party supplies its additive input share. The server supplies OIHW weights and per-channel bias modulo the plaintext modulus. The client passes zero tensors of the same shapes. For a power-of-two plaintext modulus, set `options.ciphertext_inverse_normalization = true` on both parties. [Public header](Layer/LinearLayer/include/LinearLayer/ConvOptiEncode.h) · [Two-party example](Test/src/TestOptiEncodeConv.cpp)
 

@@ -1,8 +1,8 @@
-#include <QuantExperiment/SharedSelection.h>
+#include <OptiPrime/SharedSelection.h>
 #include <algorithm>
 #include <stdexcept>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 using Datatype::Tensor;
 Tensor<uint64_t> MaximumShared(const Tensor<uint64_t> &left, const Tensor<uint64_t> &right,
     NonlinearOperator::FixPoint<uint64_t> &fixpoint, int bitwidth) {
@@ -96,4 +96,4 @@ Tensor<uint64_t> ArgMaxShared(const Tensor<uint64_t> &input,
     indices.bitwidth = bitwidth;
     return indices;
 }
-} // namespace QuantExperiment
+} // namespace OptiPrime

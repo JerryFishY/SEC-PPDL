@@ -13,6 +13,8 @@ class Step:
     signed: bool = False
     skip: int = 0
     projection: bool = False
+    depthwise: bool = False
+    relu6: bool = False
 
 
 BLOCKS = {
@@ -24,7 +26,12 @@ BLOCKS = {
 }
 
 
+MODELS = (*BLOCKS, "mobilenet_v2")
+
+
 def topology(arch):
+    if arch not in MODELS:
+        raise ValueError(f"Unsupported model {arch}")
     steps, shapes = [], [(3, 224)]
 
     def append(step, shape):
@@ -32,14 +39,39 @@ def topology(arch):
         shapes.append(shape)
         return len(steps)
 
-    def conv(src, name, co, kernel, stride=1, pad=0, signed=False):
+    def conv(src, name, co, kernel, stride=1, pad=0, signed=False, depthwise=False, relu6=False):
         ci, h = shapes[src]
         s = (h, ci, co, kernel, stride, pad)
         return append(
-            Step("conv", src, name, s, signed), (co, (h + 2 * pad - kernel) // stride + 1)
+            Step("conv", src, name, s, signed, depthwise=depthwise, relu6=relu6), (co, (h + 2 * pad - kernel) // stride + 1)
         )
 
-    if arch.startswith("vgg"):
+    if arch == "mobilenet_v2":
+        x = conv(0, "features.0.0", 32, 3, 2, 1, relu6=True)
+        index = 1
+        for expansion, channels, repeats, stride in (
+            (1, 16, 1, 1), (6, 24, 2, 2), (6, 32, 3, 2), (6, 64, 4, 2),
+            (6, 96, 3, 1), (6, 160, 3, 2), (6, 320, 1, 1),
+        ):
+            for block in range(repeats):
+                skip = x
+                ci = shapes[x][0]
+                prefix = f"features.{index}.conv"
+                index += 1
+                step_stride = stride if block == 0 else 1
+                dw = int(expansion != 1)
+                hidden = ci * expansion
+                if expansion != 1:
+                    x = conv(x, prefix + ".0.0", hidden, 1, relu6=True)
+                x = conv(x, f"{prefix}.{dw}.0", hidden, 3, step_stride, 1,
+                         depthwise=True, relu6=True)
+                x = conv(x, f"{prefix}.{dw + 1}", channels, 1, signed=True)
+                if step_stride == 1 and ci == channels:
+                    x = append(Step("add", x, prefix + ".add", signed=True, skip=skip), shapes[x])
+        x = conv(x, "features.18.0", 1280, 1, relu6=True)
+        x = append(Step("mean", x), (1280, 1))
+        conv(x, "classifier.1", 1000, 1)
+    elif arch.startswith("vgg"):
         x = index = 0
         for repeats, channels in zip(BLOCKS[arch], (64, 128, 256, 512, 512)):
             for _ in range(repeats):

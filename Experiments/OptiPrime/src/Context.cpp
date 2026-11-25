@@ -1,11 +1,11 @@
-#include <QuantExperiment/Context.h>
+#include <OptiPrime/Context.h>
 #include <LinearLayer/ConvOptiEncode.h>
 #include <exception>
 #include <mutex>
 #include <thread>
 #include <unistd.h>
 
-namespace QuantExperiment {
+namespace OptiPrime {
 using Datatype::Tensor;
 void Config::Validate() const {
     if (activation_bits < 2 || activation_bits > 16 || activation_bits + 2 > activation_ring_bits)
@@ -252,4 +252,4 @@ void Context::ApproximateShiftNonnegative(Tensor<uint64_t> &input, int shift) {
     });
     input.bitwidth = bits;
 }
-} // namespace QuantExperiment
+} // namespace OptiPrime
