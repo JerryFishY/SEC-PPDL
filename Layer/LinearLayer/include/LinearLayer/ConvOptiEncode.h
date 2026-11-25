@@ -18,6 +18,7 @@ struct OptiEncodeOptions {
     bool ciphertext_inverse_normalization = false;
     bool cuda_graph = false;
     bool compact_output = false; // Send only the masked output coefficients needed by the client.
+    bool depthwise = false; // Multiplier one, compact [channels, 1, kernel, kernel] weights.
 };
 struct OptiEncodeStats {
     size_t input_ciphertexts = 0, output_ciphertexts = 0;

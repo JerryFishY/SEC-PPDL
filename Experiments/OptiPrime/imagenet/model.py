@@ -20,7 +20,7 @@ def input_byte(x, activation_bits=8):
 def linear(step, x, w, b=None):
     if w.ndim == 2:
         return F.linear(x.flatten(1), w, b)[:, :, None, None]
-    return F.conv2d(x, w, b, step.shape[4], step.shape[5])
+    return F.conv2d(x, w, b, step.shape[4], step.shape[5], groups=step.shape[1] if step.depthwise else 1)
 
 
 class ReleasedModel:
@@ -58,12 +58,17 @@ class ReleasedModel:
                 layer = net.get_submodule(s.name)
                 w = layer.weight.detach()
                 b = layer.bias.detach() if layer.bias is not None else torch.zeros(w.shape[0])
+                bn_name = None
+                if arch == "mobilenet_v2" and s.name != self.final:
+                    parent, child = s.name.rsplit(".", 1)
+                    bn_name = f"{parent}.{int(child) + 1}"
                 if arch.startswith("resnet") and s.name != "fc":
                     bn_name = (
                         s.name.replace("downsample.0", "downsample.1")
                         if "downsample" in s.name
                         else s.name.replace("conv", "bn")
                     )
+                if bn_name is not None:
                     bn = net.get_submodule(bn_name)
                     factor = bn.weight.detach() / (bn.running_var + bn.eps).sqrt()
                     w = w * factor[:, None, None, None]
@@ -79,13 +84,13 @@ class ReleasedModel:
         def conv(s, a):
             y = linear(s, a, self.state[s.name + ".weight"], self.state[s.name + ".bias"])
             if s.name != self.final and not s.signed:
-                y = y.relu()
+                y = F.relu6(y) if s.relu6 else y.relu()
             if observe and s.name != self.final:
                 observe(s.name, y)
             return y
 
         def residual(s, a, b):
-            y = (a + b).relu()
+            y = a + b if s.signed else (a + b).relu()
             if observe:
                 observe(s.name, y)
             return y
@@ -115,6 +120,24 @@ def calibrate(model, loader, device, balance_gains=True, arith=Arithmetic()):
     mid = 1 << (arith.activation_bits - 1)
     cap = 2 * mid - 1
     unit = {k: v / cap for k, v in q.items()}
+    if model.arch == "mobilenet_v2":
+        # A shortcut and both linear branches must share a signed affine scale.
+        # Each run of identity blocks starts at a projection without a shortcut.
+        groups = {}
+        for i, s in enumerate(model.steps, 1):
+            if s.relu6:
+                unit[s.name] = 6 / cap
+            elif s.signed and s.op == "conv":
+                groups[i] = [s.name]
+            elif s.op == "add":
+                group = groups.pop(s.skip)
+                group.extend(groups.pop(s.src))
+                group.append(s.name)
+                groups[i] = group
+        for group in groups.values():
+            value = max(q[name] for name in group) / (mid - 1)
+            for name in group:
+                unit[name] = value
     if model.arch.startswith("resnet"):
         for stage, n in enumerate(BLOCKS[model.arch], 1):
             prefix = f"layer{stage}."
@@ -157,6 +180,10 @@ class IntegerModel:
         self.arith = Arithmetic(bits, shift, weight_bits, activation_bits, fc_bits).validate()
         self.steps, self.final, self.arch = release.steps, release.final, release.arch
         self.source = release.source
+        self.input_zero = {
+            s.name for s in self.steps if s.op == "conv" and
+            (s.src == 0 or (self.arch == "mobilenet_v2" and self.steps[s.src - 1].signed))
+        }
         self.params = {}
         self.max_row_l1 = {}
         for s in self.steps:
@@ -196,10 +223,10 @@ class IntegerModel:
             for s in self.steps:
                 if s.op == "conv":
                     print(
-                        s.op,
+                        ("dwconv" if s.depthwise else "conv") + ("6" if s.relu6 else ""),
                         s.src,
                         *s.shape,
-                        mid if s.src == 0 else 0,
+                        mid if s.name in self.input_zero else 0,
                         mid if s.signed else 0,
                         file=graph,
                     )
@@ -226,7 +253,7 @@ class IntegerModel:
 
         def conv(s, a):
             w, b, m = self.params[s.name]
-            if s.src == 0:
+            if s.name in self.input_zero:
                 a = a - mid
             # FP32 represents every integer partial sum up to 2^24. Use FP64
             # when the weight row norm and activation range exceed that bound.
@@ -246,12 +273,16 @@ class IntegerModel:
                 y = ring(numerator).clamp_min(0)
                 lo, hi = y >> shift, (y + divisor - 1) >> shift
                 if oracle:
+                    if s.relu6:
+                        lo, hi = lo.clamp_max(cap), hi.clamp_max(cap)
                     out = oracle(s.name, lo, hi)
                 else:
                     coin = torch.randint(
                         divisor, y.shape, dtype=torch.int32, device=y.device, generator=generator
                     )
                     out = (y + coin) >> shift
+                    if s.relu6:
+                        out = out.clamp_max(cap)
             else:
                 out = ((ring(numerator) >> shift) + z).clamp(0, cap)
                 if oracle:

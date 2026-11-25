@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     try {
         using namespace QuantExperiment;
         Config cfg;
-        std::string bundle, output, qbits;
+        std::string bundle, output, qbits, falcon_plan;
         int gpu = 0, approximate = 0, count = 1, trace_count = 0, cheetah = 0;
         int ferret = 1, preprocess = 1, prepare_he = 0, graph = 0, compact_output = 0;
         ArgMapping args;
@@ -58,6 +58,7 @@ int main(int argc, char **argv) {
         args.arg("p", cfg.port);
         args.arg("nt", cfg.threads);
         args.arg("bundle", bundle);
+        args.arg("falcon_plan", falcon_plan);
         args.arg("results", output);
         args.arg("gpu", gpu);
         args.arg("ferret", ferret);
@@ -87,6 +88,7 @@ int main(int argc, char **argv) {
         cfg.preprocess = preprocess;
         cfg.cuda_graph = graph;
         cfg.compact_output = compact_output;
+        cfg.falcon_plan = falcon_plan;
         if (!qbits.empty()) {
             cfg.ciphertext_prime_bits.clear();
             std::istringstream primes(qbits);
@@ -187,6 +189,8 @@ int main(int argc, char **argv) {
                       << ",\"he_offline_bytes\":" << he_offline_bytes
                       << ",\"offline_bytes\":" << online_bytes - start_bytes
                       << ",\"linear_seconds\":" << linear_seconds
+                      << ",\"depthwise_seconds\":" << profile.depthwise.seconds
+                      << ",\"depthwise_bytes\":" << profile.depthwise.bytes
                       << ",\"linear_bytes\":" << linear_bytes << "}" << std::endl;
             const auto winner = OpenAtServer(context, index, cfg.ArgmaxBits());
             const auto actual = OpenAtServer(context, logits, cfg.ClassifierBits());

@@ -20,6 +20,19 @@ __global__ void ExtractPatches(Geometry g, const uint32_t *input, uint32_t *patc
     patches[size_t(k) * g.spatial + p] = (unsigned(y) < g.size && unsigned(x) < g.size)
         ? input[(size_t(c) * g.size + y) * g.size + x] : 0;
 }
+__global__ void Depthwise(Geometry g, const uint32_t *weights, const uint32_t *input, uint32_t *output) {
+    const int p = blockIdx.x * blockDim.x + threadIdx.x, c = blockIdx.y;
+    if (p >= g.spatial) return;
+    uint32_t sum = 0;
+    for (int r = 0; r < g.kernel; ++r) for (int s = 0; s < g.kernel; ++s) {
+        const int y = p / g.side * g.stride + r - g.padding;
+        const int x = p % g.side * g.stride + s - g.padding;
+        if (unsigned(y) < g.size && unsigned(x) < g.size)
+            sum += input[(size_t(c) * g.size + y) * g.size + x] *
+                   weights[(size_t(c) * g.kernel + r) * g.kernel + s];
+    }
+    output[size_t(c) * g.spatial + p] = sum;
+}
 constexpr int tile = 16;
 __global__ void Multiply(Geometry g, const uint32_t *weights, const uint32_t *patches, uint32_t *output) {
     __shared__ uint32_t a[tile][tile], b[tile][tile];
@@ -45,9 +58,9 @@ struct RingConvGPU {
 };
 std::shared_ptr<RingConvGPU> MakeRingConvGPU(size_t size, size_t ci, size_t co, size_t kernel,
                                              size_t stride, size_t padding, size_t side,
-                                             const uint32_t *weights) {
-    const size_t depth = ci * kernel * kernel, spatial = side * side;
-    if (depth > 65535 || co > 65535 * tile || spatial > std::numeric_limits<int>::max() - 256 ||
+                                             const uint32_t *weights, bool depthwise) {
+    const size_t depth = (depthwise ? 1 : ci) * kernel * kernel, spatial = side * side;
+    if ((depthwise && (ci != co || co > 65535)) || depth > 65535 || co > 65535 * tile || spatial > std::numeric_limits<int>::max() - 256 ||
         size > std::numeric_limits<int>::max() || stride > std::numeric_limits<int>::max() ||
         padding > std::numeric_limits<int>::max())
         throw std::invalid_argument("Ring convolution geometry exceeds CUDA grid limits");
@@ -55,7 +68,7 @@ std::shared_ptr<RingConvGPU> MakeRingConvGPU(size_t size, size_t ci, size_t co, 
     state->g = {int(size),int(ci),int(co),int(kernel),int(stride),int(padding),int(side),int(depth),int(spatial)};
     Check(cudaMalloc(&state->input, ci * size * size * sizeof(uint32_t)));
     Check(cudaMalloc(&state->weights, co * depth * sizeof(uint32_t)));
-    Check(cudaMalloc(&state->patches, depth * spatial * sizeof(uint32_t)));
+    if (!depthwise) Check(cudaMalloc(&state->patches, depth * spatial * sizeof(uint32_t)));
     Check(cudaMalloc(&state->output, co * spatial * sizeof(uint32_t)));
     Check(cudaMemcpy(state->weights, weights, co * depth * sizeof(uint32_t), cudaMemcpyHostToDevice));
     return state;
@@ -65,10 +78,14 @@ void RunRingConvGPU(RingConvGPU &state, const uint32_t *input, uint32_t *output)
     const auto stream = cudaStreamPerThread;
     Check(cudaMemcpyAsync(state.input, input, size_t(g.ci) * g.size * g.size * sizeof(uint32_t),
                           cudaMemcpyHostToDevice, stream));
-    ExtractPatches<<<dim3((g.spatial+255)/256, g.depth),256,0,stream>>>(g, state.input, state.patches);
-    Check(cudaGetLastError());
-    Multiply<<<dim3((g.spatial+tile-1)/tile, (g.co+tile-1)/tile),dim3(tile,tile),0,stream>>>(
-        g, state.weights, state.patches, state.output);
+    if (!state.patches) {
+        Depthwise<<<dim3((g.spatial+255)/256, g.co),256,0,stream>>>(g, state.weights, state.input, state.output);
+    } else {
+        ExtractPatches<<<dim3((g.spatial+255)/256, g.depth),256,0,stream>>>(g, state.input, state.patches);
+        Check(cudaGetLastError());
+        Multiply<<<dim3((g.spatial+tile-1)/tile, (g.co+tile-1)/tile),dim3(tile,tile),0,stream>>>(
+            g, state.weights, state.patches, state.output);
+    }
     Check(cudaGetLastError());
     Check(cudaMemcpyAsync(output, state.output, size_t(g.co) * g.spatial * sizeof(uint32_t),
                           cudaMemcpyDeviceToHost, stream));

@@ -105,7 +105,7 @@ void Conv2DOptiEncode::PrepareInput(bool include_product) {
 #ifdef USE_HE_GPU
                 if (HE->Backend() == DEVICE)
                     ring_gpu_ = MakeRingConvGPU(l.height, l.input_channels, l.output_channels, l.kernel,
-                                                l.stride, l.padding, l.output_height, weights.data());
+                                                l.stride, l.padding, l.output_height, weights.data(), l.depthwise);
 #endif
                 ring_weights_ = std::move(weights);
             }

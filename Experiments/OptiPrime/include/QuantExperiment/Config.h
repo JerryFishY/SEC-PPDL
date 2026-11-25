@@ -14,6 +14,7 @@ struct Config {
     bool power_of_two = false, ciphertext_inverse = false;
     bool cuda_graph = false, compact_output = false;
     bool empirical_range = false, approximate_relu = false;
+    std::string falcon_plan;
     std::string address = "127.0.0.1";
     int activation_ring_bits = 10, accumulator_bits = 32;
     int activation_bits = 8; // Quantizer width, independent of the MPC share width.

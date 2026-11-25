@@ -30,6 +30,7 @@ parser.add_argument(
     help=argparse.SUPPRESS if imagenet else "Protocol check to run",
 )
 if imagenet:
+    parser.add_argument("--falcon-plan", help="Replace only CPU depthwise layers with Falcon using this public plan")
     parser.add_argument("--compact-output", action="store_true",
                         help="Use compact BFV output messages independently of HE preprocessing")
     parser.add_argument("--cuda-graph", action="store_true", help="Cache deterministic GPU layer graphs at model setup")
@@ -99,6 +100,8 @@ if imagenet:
     primes = args.qbits.split(",")
     if len(primes) < 2 or any(not p.isdecimal() or not 2 <= int(p) <= 60 for p in primes):
         parser.error("--qbits requires at least two prime lengths between 2 and 60")
+    if args.falcon_plan and (args.linear != "cpu" or not args.compact_output or args.prepare_he or args.prepare_product):
+        parser.error("--falcon-plan requires CPU compact output with online HE")
     if args.cuda_graph and args.linear != "gpu":
         parser.error("--cuda-graph requires --linear gpu")
     if (args.compact_output or args.prepare_he or args.prepare_product) and (baseline or len(primes) != 2):
@@ -157,6 +160,8 @@ try:
                 f"address={args.address}",
                 f"cheetah={int(baseline)}",
             ]
+            if args.falcon_plan:
+                command.append(f"falcon_plan={Path(args.falcon_plan).resolve()}")
             if args.compact_output:
                 command.append("compact_output=1")
             if args.cuda_graph:
@@ -231,6 +236,7 @@ if args.kind == "imagenet":
     report["config"].update(
         bundle=str(Path(args.bundle).resolve()),
         mode=args.mode,
+        falcon_plan=args.falcon_plan,
         prepare_he=args.prepare_he,
         prepare_product=args.prepare_product,
         cuda_graph=args.cuda_graph,
@@ -264,6 +270,11 @@ if args.kind == "imagenet":
             online_seconds=max(p["online_seconds"] for p in pair),
             offline_seconds=max(p["offline_seconds"] for p in pair),
         )
+        if all("depthwise_seconds" in p for p in pair):
+            # Use the same party for both linear time components so their sum is additive.
+            critical = max(pair, key=lambda p: p["linear_seconds"])
+            metrics["depthwise_seconds"] = critical["depthwise_seconds"]
+            metrics["depthwise_bytes"] = sum(p["depthwise_bytes"] for p in pair)
         if all("he_offline_seconds" in p for p in pair):
             metrics["he_offline_seconds"] = max(p["he_offline_seconds"] for p in pair)
             metrics["he_offline_bytes"] = sum(p["he_offline_bytes"] for p in pair)

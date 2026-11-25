@@ -13,10 +13,14 @@ struct OptiEncodeLayout {
     size_t channels, input_blocks, output_blocks, tile_rows, tile_columns;
     size_t baby_steps, giant_steps;
     uint32_t generator;
+    bool depthwise;
+    size_t WeightInputBlocks() const { return depthwise ? 1 : input_blocks; }
+    size_t SourceBlock(size_t slot, size_t output) const { return depthwise ? output : slot; }
 
     OptiEncodeLayout(size_t degree, size_t height, size_t width, size_t input_channels,
                      size_t output_channels, size_t kernel, size_t stride, size_t padding,
-                     size_t requested_channels = 0, size_t requested_tile_size = 0);
+                     size_t requested_channels = 0, size_t requested_tile_size = 0,
+                     bool depthwise = false);
     size_t TileCount() const;
     size_t InputCiphertexts() const;
     size_t OutputCiphertexts() const;

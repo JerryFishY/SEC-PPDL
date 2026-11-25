@@ -36,10 +36,11 @@ void Conv2DOptiEncode::AddRingProduct(const Tensor<uint64_t> &delta, Tensor<uint
         });
         Utils::ParallelFor(l.output_channels, options_.threads, [&](size_t c, size_t) {
             auto *sum = sums.data() + c * spatial;
-            for (size_t k = 0; k < depth; ++k) {
-                const uint32_t w = ring_weights_[c * depth + k];
+            const size_t taps = l.depthwise ? l.kernel * l.kernel : depth;
+            for (size_t k = 0; k < taps; ++k) {
+                const uint32_t w = ring_weights_[c * taps + k];
                 if (!w) continue;
-                const auto *row = patches.data() + k * spatial;
+                const auto *row = patches.data() + (l.depthwise ? c * taps + k : k) * spatial;
                 for (size_t p = 0; p < spatial; ++p) sum[p] += w * row[p];
             }
         });

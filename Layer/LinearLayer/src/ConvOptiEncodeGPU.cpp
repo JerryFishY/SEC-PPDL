@@ -43,7 +43,7 @@ void Conv2DOptiEncode::PrepareGraph() {
     // A wholly zero output block needs a fresh encryption on each invocation.
     for (size_t o = 0; o < layout_.output_blocks; ++o) {
         bool nonzero = false;
-        for (size_t i = 0; i < layout_.input_blocks; ++i)
+        for (size_t i = 0; i < layout_.WeightInputBlocks(); ++i)
             for (size_t k = 0; k < layout_.channels; ++k)
                 nonzero |= nonzero_weights_[(i * layout_.output_blocks + o) * layout_.channels + k] != 0;
         if (!nonzero) return;
@@ -102,18 +102,24 @@ void Conv2DOptiEncode::EvaluateGPU(const Tensor<UnifiedPlaintext> &weights,
     auto &evaluator = *HE->evaluator;
     const uint32_t giant_element = static_cast<uint32_t>(Operator::OptiEncodePowerMod(
         layout_.generator, layout_.baby_steps, 2 * layout_.degree));
+    const size_t slots = layout_.WeightInputBlocks();
     for (size_t tile = 0; tile < layout_.TileCount(); ++tile) {
-        std::vector<UnifiedCiphertext> babies(layout_.input_blocks * layout_.baby_steps);
-        for (size_t i = 0; i < layout_.input_blocks; ++i) {
-            auto current = inputs({tile, i});
-            for (size_t a = 0; a < layout_.baby_steps; ++a) {
-                if (a) ApplyAutomorphismGPU(current, layout_.generator);
-                auto &baby = babies[i * layout_.baby_steps + a];
-                baby = current;
-                evaluator.transform_to_ntt_inplace(baby);
+        std::vector<UnifiedCiphertext> babies(slots * layout_.baby_steps);
+        auto prepare_babies = [&](size_t output_block) {
+            for (size_t slot = 0; slot < slots; ++slot) {
+                auto current = inputs({tile, layout_.SourceBlock(slot, output_block)});
+                for (size_t a = 0; a < layout_.baby_steps; ++a) {
+                    if (a) ApplyAutomorphismGPU(current, layout_.generator);
+                    auto &baby = babies[slot * layout_.baby_steps + a];
+                    if (a + 1 == layout_.baby_steps) baby = std::move(current);
+                    else baby = current;
+                    evaluator.transform_to_ntt_inplace(baby);
+                }
             }
-        }
+        };
         for (size_t o = 0; o < layout_.output_blocks; ++o) {
+            // Dense outputs share all babies. Each depthwise output consumes one input block.
+            if (layout_.depthwise || o == 0) prepare_babies(o);
             UnifiedCiphertext result;
             bool have_result = false;
             for (size_t giant = layout_.giant_steps; giant-- > 0;) {
@@ -130,7 +136,7 @@ void Conv2DOptiEncode::EvaluateGPU(const Tensor<UnifiedPlaintext> &weights,
                     batch.count = 0;
                     have_subtotal = true;
                 };
-                for (size_t i = 0; i < layout_.input_blocks; ++i) {
+                for (size_t i = 0; i < layout_.WeightInputBlocks(); ++i) {
                     for (size_t a = 0; a < layout_.baby_steps; ++a) {
                         const size_t index = (i * layout_.output_blocks + o) * layout_.channels
                                              + giant * layout_.baby_steps + a;

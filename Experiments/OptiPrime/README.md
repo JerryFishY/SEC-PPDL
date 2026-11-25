@@ -1,6 +1,6 @@
 # OptiPrime experiments for quantized vision inference
 
-Run two-party ImageNet inference with ResNet-18, ResNet-34, ResNet-50, VGG-16, or VGG-19. The CPU and GPU convolution backends implement OptiEncode from Section III of OptiPrime (Jiangrui Yu et al., MICRO 2026). Please cite OptiPrime when using this protocol. [Paper](https://arxiv.org/abs/2609.16898) · [BibTeX](../../README.md#citation)
+Run two-party ImageNet inference with ResNet-18, ResNet-34, ResNet-50, VGG-16, VGG-19, or MobileNetV2. The CPU and GPU convolution backends implement OptiEncode from Section III of OptiPrime (Jiangrui Yu et al., MICRO 2026). Please cite OptiPrime when using this protocol. [Paper](https://arxiv.org/abs/2609.16898) · [BibTeX](../../README.md#citation)
 
 Both inference modes use the same weights, activation scales, and secure argmax. Exact mode truncates signed values toward negative infinity and clamps the result to the activation range. Approximate mode uses a sign comparison and a multiplexer, then applies stochastic truncation to the nonnegative result. Values can exceed the upper activation limit.
 
@@ -32,6 +32,8 @@ python3 "$exp/imagenet/evaluate.py" --model resnet18 --assets "$assets" --data "
 
 ResNet-18 defaults to AIMET's batch-normalization-folded weights and AdaRound weight encodings. The other models use torchvision's ImageNet-1K V1 weights and quantize them at export. VGG retains all five pooling stages and all three fully connected classifier layers. The large classifier matrices use coefficient-packed dot products to limit memory use.
 
+MobileNetV2 uses the torchvision `mobilenet_v2` ImageNet-1K V1 checkpoint. Select `--model mobilenet_v2` during export, then run the same CPU or GPU commands below. Its 17 depthwise layers use compact multiplier-one kernels. ReLU6 maps 6 to the largest activation code in both modes. The linear projections and shortcuts share signed affine scales, with zero represented by the midpoint. The depthwise protocol is an extension to the published OptiEncode method. [Derivation and operator API](depthwise.md) · [Falcon CPU comparison](falcon/README.md)
+
 | Export option | Range and default | Meaning |
 |---|---|---|
 | `--weight-bits` | 2–8, default 4 | Signed weight width for convolutions and the intermediate VGG classifier layers |
@@ -55,9 +57,9 @@ for mode in exact approx; do
 done
 ```
 
-To switch networks, select `resnet34`, `resnet50`, `vgg16`, or `vgg19` with `--model` at export, choose a new bundle directory, and omit `--work-bits` to use the model default. Run the same inference and verification commands on the new bundle.
+To switch networks, select `resnet34`, `resnet50`, `vgg16`, `vgg19`, or `mobilenet_v2` with `--model` at export, choose a new bundle directory, and omit `--work-bits` to use the model default. Run the same inference and verification commands on the new bundle.
 
-- **Backend.** The runner starts both parties on loopback. It defaults to CPU OptiEncode with preprocessed Ferret OT. Select the OT backend with `--ot iknp|ferret` and toggle preprocessing with `--preprocess 0|1`. For GPU inference, build the same target in `build-gpu` with `-DUSE_HE_GPU=ON` and pass `--linear gpu`. Use `--binary` for a custom build directory. To run the Cheetah CPU baseline with online IKNP, use `--linear cheetah --mode exact`.
+- **Backend.** The runner starts both parties on loopback. It defaults to CPU OptiEncode with preprocessed Ferret OT. Select the OT backend with `--ot iknp|ferret` and toggle preprocessing with `--preprocess 0|1`. For GPU inference, build the same target in `build-gpu` with `-DUSE_HE_GPU=ON` and pass `--linear gpu`. Use `--binary` for a custom build directory. For ResNet and VGG, to run the Cheetah CPU baseline with online IKNP, use `--linear cheetah --mode exact`.
 - **HE parameters.** `--qbits` sets the coefficient-modulus prime widths. The default is `50,50` at k=20 and `50,50,50` for wider work rings. After changing the chain, verify exact logits and approximate layer traces to check numerical correctness on the chosen inputs.
 - **Correctness.** `--repeat` selects up to the number of cases exported with `--secure-images`. The verification harness opens the public test logits at the server. `--trace-count N` also opens intermediate activations for the first N images. In exact mode, the checker compares against the integer reference. In approximate mode, it checks each layer's rounding bounds, replays the observed values through the classifier, and checks the secure argmax against the logits.
 - **GPU graphs.** Add `--linear gpu --cuda-graph` to capture deterministic HE convolutions once when the server loads the model. Weights and graph buffers stay on the GPU. Layers requiring a fresh encryption of zero run eagerly.
