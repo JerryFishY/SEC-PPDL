@@ -6,6 +6,7 @@ Both inference modes use the same weights, activation scales, and secure argmax.
 
 | Task | Entry point |
 |---|---|
+| View measured performance | [CPU and network setup, latency, communication and accuracy](measurements/README.md) |
 | Inspect a network | `topology()` defines the stages, residual connections, and classifier in [architecture.py](imagenet/architecture.py). |
 | Run an experiment | Export with [evaluate.py](imagenet/evaluate.py), start both parties with [run.py](run.py), and verify activations and logits with [check_secure.py](imagenet/check_secure.py). |
 | Use a network from C++ | Use `QuantizedImageNetModel` from [Model.h](include/QuantExperiment/Model.h). [C++ example](#model-api) |

@@ -1,0 +1,948 @@
+[
+  {
+    "model": "ResNet-18",
+    "network": "LAN",
+    "method": "Cheetah",
+    "images": 16,
+    "session_seconds": 732.7376502063125,
+    "network_probe_mbit": [
+      2752.774707320782,
+      2710.1817386302964
+    ],
+    "network_probe_rtt_ms": 0.34433137625455856,
+    "online_s": 33.253075,
+    "preprocess_s": 12.060815,
+    "total_s": 45.31389,
+    "online_bytes": 6884156018,
+    "preprocess_bytes": 54251296,
+    "total_bytes": 6938407314,
+    "per_image": [
+      {
+        "online_s": 33.7269,
+        "ot_s": 14.6034,
+        "online_bytes": 6884156018,
+        "ot_bytes": 70840576,
+        "winner": 113,
+        "image": "7d2fe3376136eec33373b5a9e460a12c5934375c.jpeg",
+        "label": 113
+      },
+      {
+        "online_s": 32.8446,
+        "ot_s": 14.3049,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 646,
+        "image": "6ee8a27d9e675250ce39a573cc1a99691a97cfa8.jpeg",
+        "label": 646
+      },
+      {
+        "online_s": 32.566,
+        "ot_s": 8.55485,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 886,
+        "image": "dbca2fbefd522251c27cee3ab35c067ffae7f4c1.jpeg",
+        "label": 886
+      },
+      {
+        "online_s": 33.6051,
+        "ot_s": 9.10155,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 926,
+        "image": "d4dcd48323696deba7ab6fb02ae7109d3f0b3c71.jpeg",
+        "label": 521
+      },
+      {
+        "online_s": 33.6372,
+        "ot_s": 12.0768,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 162,
+        "image": "aae5c0f967c1032ab59573ca9e5e405506a39fd2.jpeg",
+        "label": 162
+      },
+      {
+        "online_s": 33.3871,
+        "ot_s": 12.509,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 788,
+        "image": "d29b0f7681772cc30d296ed7177c52daed9c8e8d.jpeg",
+        "label": 788
+      },
+      {
+        "online_s": 33.0919,
+        "ot_s": 16.6274,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 443,
+        "image": "c3d80f5d4a924290cb30b84c3d43d6b13781f7fa.jpeg",
+        "label": 411
+      },
+      {
+        "online_s": 33.7186,
+        "ot_s": 13.5,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 933,
+        "image": "363b7fa2154ce5c62aae7e5748f4fa23cb0bdc3e.jpeg",
+        "label": 933
+      },
+      {
+        "online_s": 33.4427,
+        "ot_s": 15.5874,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 310,
+        "image": "dfd8a6c8227d42909f1137e2d4d888a2692bb831.jpeg",
+        "label": 310
+      },
+      {
+        "online_s": 33.0875,
+        "ot_s": 9.41773,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 614,
+        "image": "64f1d5f9cfefb69df81b2bdfd4d351415992076d.jpeg",
+        "label": 614
+      },
+      {
+        "online_s": 33.2061,
+        "ot_s": 16.4744,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 886,
+        "image": "b9ba357532b1dde55e1c55a1307f7535e4127368.jpeg",
+        "label": 886
+      },
+      {
+        "online_s": 33.3495,
+        "ot_s": 8.12064,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 853,
+        "image": "b68254ee35ea7c52529c162558d9dc45cd2ec515.jpeg",
+        "label": 191
+      },
+      {
+        "online_s": 33.1266,
+        "ot_s": 9.57995,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 64,
+        "image": "5e771b51d599443633bceb8ebddf436e8ad1bc50.jpeg",
+        "label": 64
+      },
+      {
+        "online_s": 33.2228,
+        "ot_s": 9.37582,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 173,
+        "image": "f06646012693ab7f6ee5d8fc41a2c6986c5d58e7.jpeg",
+        "label": 173
+      },
+      {
+        "online_s": 33.0656,
+        "ot_s": 13.8906,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 141,
+        "image": "8c62b6a50790f003818f13049d61d246a11b863f.jpeg",
+        "label": 141
+      },
+      {
+        "online_s": 32.971,
+        "ot_s": 9.2486,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 592,
+        "image": "579fde2f41a53a0558228a8512d2e14b02bda24f.jpeg",
+        "label": 592
+      }
+    ]
+  },
+  {
+    "model": "ResNet-18",
+    "network": "LAN",
+    "method": "OptiPrime",
+    "images": 16,
+    "session_seconds": 112.02035326790065,
+    "network_probe_mbit": [
+      2560.4396896434696,
+      2621.895041886208
+    ],
+    "network_probe_rtt_ms": 0.35036448389291763,
+    "online_s": 3.8295075,
+    "preprocess_s": 2.9354989375,
+    "total_s": 6.7650064375,
+    "online_bytes": 290555483,
+    "preprocess_bytes": 8857344,
+    "total_bytes": 299412827,
+    "per_image": [
+      {
+        "online_s": 3.84191,
+        "ot_s": 5.93478,
+        "online_bytes": 290555483,
+        "ot_bytes": 17704960,
+        "winner": 113,
+        "image": "7d2fe3376136eec33373b5a9e460a12c5934375c.jpeg",
+        "label": 113
+      },
+      {
+        "online_s": 3.78736,
+        "ot_s": 2.73675,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 646,
+        "image": "6ee8a27d9e675250ce39a573cc1a99691a97cfa8.jpeg",
+        "label": 646
+      },
+      {
+        "online_s": 4.28743,
+        "ot_s": 3.12203,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 886,
+        "image": "dbca2fbefd522251c27cee3ab35c067ffae7f4c1.jpeg",
+        "label": 886
+      },
+      {
+        "online_s": 3.89518,
+        "ot_s": 3.12396,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 926,
+        "image": "d4dcd48323696deba7ab6fb02ae7109d3f0b3c71.jpeg",
+        "label": 521
+      },
+      {
+        "online_s": 3.9642,
+        "ot_s": 3.65904,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 166,
+        "image": "aae5c0f967c1032ab59573ca9e5e405506a39fd2.jpeg",
+        "label": 162
+      },
+      {
+        "online_s": 3.76695,
+        "ot_s": 3.50038,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 415,
+        "image": "d29b0f7681772cc30d296ed7177c52daed9c8e8d.jpeg",
+        "label": 788
+      },
+      {
+        "online_s": 3.66873,
+        "ot_s": 2.85932,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 443,
+        "image": "c3d80f5d4a924290cb30b84c3d43d6b13781f7fa.jpeg",
+        "label": 411
+      },
+      {
+        "online_s": 3.35942,
+        "ot_s": 1.81173,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 933,
+        "image": "363b7fa2154ce5c62aae7e5748f4fa23cb0bdc3e.jpeg",
+        "label": 933
+      },
+      {
+        "online_s": 4.23089,
+        "ot_s": 2.39631,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 310,
+        "image": "dfd8a6c8227d42909f1137e2d4d888a2692bb831.jpeg",
+        "label": 310
+      },
+      {
+        "online_s": 3.7929,
+        "ot_s": 0.675713,
+        "online_bytes": 290555483,
+        "ot_bytes": 9728,
+        "winner": 614,
+        "image": "64f1d5f9cfefb69df81b2bdfd4d351415992076d.jpeg",
+        "label": 614
+      },
+      {
+        "online_s": 3.93779,
+        "ot_s": 2.73491,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 886,
+        "image": "b9ba357532b1dde55e1c55a1307f7535e4127368.jpeg",
+        "label": 886
+      },
+      {
+        "online_s": 3.95895,
+        "ot_s": 3.81667,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 853,
+        "image": "b68254ee35ea7c52529c162558d9dc45cd2ec515.jpeg",
+        "label": 191
+      },
+      {
+        "online_s": 3.55566,
+        "ot_s": 3.22172,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 64,
+        "image": "5e771b51d599443633bceb8ebddf436e8ad1bc50.jpeg",
+        "label": 64
+      },
+      {
+        "online_s": 3.65922,
+        "ot_s": 1.91983,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 173,
+        "image": "f06646012693ab7f6ee5d8fc41a2c6986c5d58e7.jpeg",
+        "label": 173
+      },
+      {
+        "online_s": 3.74022,
+        "ot_s": 2.11997,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 141,
+        "image": "8c62b6a50790f003818f13049d61d246a11b863f.jpeg",
+        "label": 141
+      },
+      {
+        "online_s": 3.82531,
+        "ot_s": 3.33487,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 592,
+        "image": "579fde2f41a53a0558228a8512d2e14b02bda24f.jpeg",
+        "label": 592
+      }
+    ]
+  },
+  {
+    "model": "ResNet-18",
+    "network": "WAN",
+    "method": "Cheetah",
+    "images": 16,
+    "session_seconds": 3794.681507279165,
+    "network_probe_mbit": [
+      290.33024890428277,
+      289.89887091209215
+    ],
+    "network_probe_rtt_ms": 40.14723561704159,
+    "online_s": 218.649375,
+    "preprocess_s": 16.7627125,
+    "total_s": 235.41208749999998,
+    "online_bytes": 6884156018,
+    "preprocess_bytes": 54251296,
+    "total_bytes": 6938407314,
+    "per_image": [
+      {
+        "online_s": 213.919,
+        "ot_s": 23.9356,
+        "online_bytes": 6884156018,
+        "ot_bytes": 70840576,
+        "winner": 113,
+        "image": "7d2fe3376136eec33373b5a9e460a12c5934375c.jpeg",
+        "label": 113
+      },
+      {
+        "online_s": 213.765,
+        "ot_s": 13.3904,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 646,
+        "image": "6ee8a27d9e675250ce39a573cc1a99691a97cfa8.jpeg",
+        "label": 646
+      },
+      {
+        "online_s": 223.226,
+        "ot_s": 15.4204,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 886,
+        "image": "dbca2fbefd522251c27cee3ab35c067ffae7f4c1.jpeg",
+        "label": 886
+      },
+      {
+        "online_s": 219.313,
+        "ot_s": 13.8017,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 926,
+        "image": "d4dcd48323696deba7ab6fb02ae7109d3f0b3c71.jpeg",
+        "label": 521
+      },
+      {
+        "online_s": 230.347,
+        "ot_s": 15.6281,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 162,
+        "image": "aae5c0f967c1032ab59573ca9e5e405506a39fd2.jpeg",
+        "label": 162
+      },
+      {
+        "online_s": 214.284,
+        "ot_s": 19.583,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 788,
+        "image": "d29b0f7681772cc30d296ed7177c52daed9c8e8d.jpeg",
+        "label": 788
+      },
+      {
+        "online_s": 213.736,
+        "ot_s": 18.4159,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 443,
+        "image": "c3d80f5d4a924290cb30b84c3d43d6b13781f7fa.jpeg",
+        "label": 411
+      },
+      {
+        "online_s": 217.83,
+        "ot_s": 14.9753,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 933,
+        "image": "363b7fa2154ce5c62aae7e5748f4fa23cb0bdc3e.jpeg",
+        "label": 933
+      },
+      {
+        "online_s": 222.069,
+        "ot_s": 16.9253,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 310,
+        "image": "dfd8a6c8227d42909f1137e2d4d888a2692bb831.jpeg",
+        "label": 310
+      },
+      {
+        "online_s": 213.446,
+        "ot_s": 16.8258,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 614,
+        "image": "64f1d5f9cfefb69df81b2bdfd4d351415992076d.jpeg",
+        "label": 614
+      },
+      {
+        "online_s": 214.205,
+        "ot_s": 14.9616,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 886,
+        "image": "b9ba357532b1dde55e1c55a1307f7535e4127368.jpeg",
+        "label": 886
+      },
+      {
+        "online_s": 226.899,
+        "ot_s": 13.9511,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 853,
+        "image": "b68254ee35ea7c52529c162558d9dc45cd2ec515.jpeg",
+        "label": 191
+      },
+      {
+        "online_s": 217.922,
+        "ot_s": 16.8147,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 64,
+        "image": "5e771b51d599443633bceb8ebddf436e8ad1bc50.jpeg",
+        "label": 64
+      },
+      {
+        "online_s": 218.778,
+        "ot_s": 16.0801,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 173,
+        "image": "f06646012693ab7f6ee5d8fc41a2c6986c5d58e7.jpeg",
+        "label": 173
+      },
+      {
+        "online_s": 219.704,
+        "ot_s": 19.0644,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 141,
+        "image": "8c62b6a50790f003818f13049d61d246a11b863f.jpeg",
+        "label": 141
+      },
+      {
+        "online_s": 218.947,
+        "ot_s": 18.43,
+        "online_bytes": 6884156018,
+        "ot_bytes": 53145344,
+        "winner": 592,
+        "image": "579fde2f41a53a0558228a8512d2e14b02bda24f.jpeg",
+        "label": 592
+      }
+    ]
+  },
+  {
+    "model": "ResNet-18",
+    "network": "WAN",
+    "method": "OptiPrime",
+    "images": 16,
+    "session_seconds": 649.6544148423709,
+    "network_probe_mbit": [
+      288.90130081521124,
+      290.1905317225055
+    ],
+    "network_probe_rtt_ms": 40.12972442433238,
+    "online_s": 36.4393375,
+    "preprocess_s": 3.3554631875,
+    "total_s": 39.7948006875,
+    "online_bytes": 290555483,
+    "preprocess_bytes": 8857344,
+    "total_bytes": 299412827,
+    "per_image": [
+      {
+        "online_s": 35.1141,
+        "ot_s": 5.76143,
+        "online_bytes": 290555483,
+        "ot_bytes": 17704960,
+        "winner": 113,
+        "image": "7d2fe3376136eec33373b5a9e460a12c5934375c.jpeg",
+        "label": 113
+      },
+      {
+        "online_s": 35.4716,
+        "ot_s": 3.31773,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 646,
+        "image": "6ee8a27d9e675250ce39a573cc1a99691a97cfa8.jpeg",
+        "label": 646
+      },
+      {
+        "online_s": 39.034,
+        "ot_s": 3.27295,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 886,
+        "image": "dbca2fbefd522251c27cee3ab35c067ffae7f4c1.jpeg",
+        "label": 886
+      },
+      {
+        "online_s": 35.6023,
+        "ot_s": 3.42291,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 926,
+        "image": "d4dcd48323696deba7ab6fb02ae7109d3f0b3c71.jpeg",
+        "label": 521
+      },
+      {
+        "online_s": 34.0934,
+        "ot_s": 3.24255,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 166,
+        "image": "aae5c0f967c1032ab59573ca9e5e405506a39fd2.jpeg",
+        "label": 162
+      },
+      {
+        "online_s": 36.6852,
+        "ot_s": 3.54554,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 415,
+        "image": "d29b0f7681772cc30d296ed7177c52daed9c8e8d.jpeg",
+        "label": 788
+      },
+      {
+        "online_s": 36.1937,
+        "ot_s": 2.8863,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 443,
+        "image": "c3d80f5d4a924290cb30b84c3d43d6b13781f7fa.jpeg",
+        "label": 411
+      },
+      {
+        "online_s": 34.8649,
+        "ot_s": 3.78183,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 933,
+        "image": "363b7fa2154ce5c62aae7e5748f4fa23cb0bdc3e.jpeg",
+        "label": 933
+      },
+      {
+        "online_s": 37.1119,
+        "ot_s": 3.5068,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 310,
+        "image": "dfd8a6c8227d42909f1137e2d4d888a2692bb831.jpeg",
+        "label": 310
+      },
+      {
+        "online_s": 33.9162,
+        "ot_s": 0.865031,
+        "online_bytes": 290555483,
+        "ot_bytes": 9728,
+        "winner": 614,
+        "image": "64f1d5f9cfefb69df81b2bdfd4d351415992076d.jpeg",
+        "label": 614
+      },
+      {
+        "online_s": 34.9653,
+        "ot_s": 3.3485,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 886,
+        "image": "b9ba357532b1dde55e1c55a1307f7535e4127368.jpeg",
+        "label": 886
+      },
+      {
+        "online_s": 38.0797,
+        "ot_s": 3.06462,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 853,
+        "image": "b68254ee35ea7c52529c162558d9dc45cd2ec515.jpeg",
+        "label": 191
+      },
+      {
+        "online_s": 38.6676,
+        "ot_s": 3.36458,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 64,
+        "image": "5e771b51d599443633bceb8ebddf436e8ad1bc50.jpeg",
+        "label": 64
+      },
+      {
+        "online_s": 41.4604,
+        "ot_s": 3.51936,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 173,
+        "image": "f06646012693ab7f6ee5d8fc41a2c6986c5d58e7.jpeg",
+        "label": 173
+      },
+      {
+        "online_s": 38.3234,
+        "ot_s": 3.50655,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 141,
+        "image": "8c62b6a50790f003818f13049d61d246a11b863f.jpeg",
+        "label": 141
+      },
+      {
+        "online_s": 33.4457,
+        "ot_s": 3.28073,
+        "online_bytes": 290555483,
+        "ot_bytes": 8857344,
+        "winner": 592,
+        "image": "579fde2f41a53a0558228a8512d2e14b02bda24f.jpeg",
+        "label": 592
+      }
+    ]
+  },
+  {
+    "model": "ResNet-34",
+    "network": "LAN",
+    "method": "Cheetah",
+    "images": 1,
+    "session_seconds": 87.19034363981336,
+    "network_probe_mbit": [
+      2821.92995292007,
+      2755.973590675494
+    ],
+    "network_probe_rtt_ms": 0.3526080399751663,
+    "online_s": 49.0233,
+    "preprocess_s": 27.3156,
+    "total_s": 76.3389,
+    "online_bytes": 9845878934,
+    "preprocess_bytes": 88563200,
+    "total_bytes": 9934442134,
+    "per_image": [
+      {
+        "online_s": 49.0233,
+        "ot_s": 27.3156,
+        "online_bytes": 9845878934,
+        "ot_bytes": 88563200,
+        "winner": 808,
+        "image": "56df1a993ba5b139a449b61a4cb1a840a3e241a9.jpeg",
+        "label": 452
+      }
+    ]
+  },
+  {
+    "model": "ResNet-34",
+    "network": "LAN",
+    "method": "OptiPrime",
+    "images": 1,
+    "session_seconds": 18.62030801270157,
+    "network_probe_mbit": [
+      2804.6938372690233,
+      2635.8356042161404
+    ],
+    "network_probe_rtt_ms": 0.3537999000400305,
+    "online_s": 5.94778,
+    "preprocess_s": 7.34559,
+    "total_s": 13.29337,
+    "online_bytes": 404228267,
+    "preprocess_bytes": 26556160,
+    "total_bytes": 430784427,
+    "per_image": [
+      {
+        "online_s": 5.94778,
+        "ot_s": 7.34559,
+        "online_bytes": 404228267,
+        "ot_bytes": 26556160,
+        "winner": 879,
+        "image": "56df1a993ba5b139a449b61a4cb1a840a3e241a9.jpeg",
+        "label": 452
+      }
+    ]
+  },
+  {
+    "model": "ResNet-50",
+    "network": "LAN",
+    "method": "Cheetah",
+    "images": 1,
+    "session_seconds": 623.2441471558996,
+    "network_probe_mbit": [
+      2767.6448969193984,
+      2692.7711521084466
+    ],
+    "network_probe_rtt_ms": 0.3466736525297165,
+    "online_s": 559.555,
+    "preprocess_s": 35.7406,
+    "total_s": 595.2955999999999,
+    "online_bytes": 131608612457,
+    "preprocess_bytes": 239133696,
+    "total_bytes": 131847746153,
+    "per_image": [
+      {
+        "online_s": 559.555,
+        "ot_s": 35.7406,
+        "online_bytes": 131608612457,
+        "ot_bytes": 239133696,
+        "winner": 808,
+        "image": "56df1a993ba5b139a449b61a4cb1a840a3e241a9.jpeg",
+        "label": 452
+      }
+    ]
+  },
+  {
+    "model": "ResNet-50",
+    "network": "LAN",
+    "method": "OptiPrime",
+    "images": 1,
+    "session_seconds": 37.83900304464623,
+    "network_probe_mbit": [
+      2754.253148097175,
+      2598.7853672066894
+    ],
+    "network_probe_rtt_ms": 0.349218025803566,
+    "online_s": 13.011,
+    "preprocess_s": 12.4985,
+    "total_s": 25.5095,
+    "online_bytes": 1089371123,
+    "preprocess_bytes": 44273152,
+    "total_bytes": 1133644275,
+    "per_image": [
+      {
+        "online_s": 13.011,
+        "ot_s": 12.4985,
+        "online_bytes": 1089371123,
+        "ot_bytes": 44273152,
+        "winner": 808,
+        "image": "56df1a993ba5b139a449b61a4cb1a840a3e241a9.jpeg",
+        "label": 452
+      }
+    ]
+  },
+  {
+    "model": "VGG-16",
+    "network": "LAN",
+    "method": "Cheetah",
+    "images": 1,
+    "session_seconds": 174.17651914292946,
+    "network_probe_mbit": [
+      2732.2086433692184,
+      2829.6972768240303
+    ],
+    "network_probe_rtt_ms": 0.35290559753775597,
+    "online_s": 85.3322,
+    "preprocess_s": 57.3303,
+    "total_s": 142.6625,
+    "online_bytes": 15604135792,
+    "preprocess_bytes": 247992576,
+    "total_bytes": 15852128368,
+    "per_image": [
+      {
+        "online_s": 85.3322,
+        "ot_s": 57.3303,
+        "online_bytes": 15604135792,
+        "ot_bytes": 247992576,
+        "winner": 808,
+        "image": "56df1a993ba5b139a449b61a4cb1a840a3e241a9.jpeg",
+        "label": 452
+      }
+    ]
+  },
+  {
+    "model": "VGG-16",
+    "network": "LAN",
+    "method": "OptiPrime",
+    "images": 1,
+    "session_seconds": 35.73769741691649,
+    "network_probe_mbit": [
+      2740.4959881632913,
+      2795.4432186917165
+    ],
+    "network_probe_rtt_ms": 0.34973397850990295,
+    "online_s": 15.7364,
+    "preprocess_s": 8.42021,
+    "total_s": 24.15661,
+    "online_bytes": 2006380961,
+    "preprocess_bytes": 44272896,
+    "total_bytes": 2050653857,
+    "per_image": [
+      {
+        "online_s": 15.7364,
+        "ot_s": 8.42021,
+        "online_bytes": 2006380961,
+        "ot_bytes": 44272896,
+        "winner": 808,
+        "image": "56df1a993ba5b139a449b61a4cb1a840a3e241a9.jpeg",
+        "label": 452
+      }
+    ]
+  },
+  {
+    "model": "VGG-19",
+    "network": "LAN",
+    "method": "Cheetah",
+    "images": 1,
+    "session_seconds": 175.57790952036157,
+    "network_probe_mbit": [
+      2720.5343868196746,
+      2735.4287641424726
+    ],
+    "network_probe_rtt_ms": 0.34953001886606216,
+    "online_s": 94.5763,
+    "preprocess_s": 45.5267,
+    "total_s": 140.103,
+    "online_bytes": 17302982901,
+    "preprocess_bytes": 265712896,
+    "total_bytes": 17568695797,
+    "per_image": [
+      {
+        "online_s": 94.5763,
+        "ot_s": 45.5267,
+        "online_bytes": 17302982901,
+        "ot_bytes": 265712896,
+        "winner": 808,
+        "image": "56df1a993ba5b139a449b61a4cb1a840a3e241a9.jpeg",
+        "label": 452
+      }
+    ]
+  },
+  {
+    "model": "VGG-19",
+    "network": "LAN",
+    "method": "OptiPrime",
+    "images": 1,
+    "session_seconds": 60.759810981340706,
+    "network_probe_mbit": [
+      2758.243776351208,
+      2651.3757905914595
+    ],
+    "network_probe_rtt_ms": 0.35432050935924053,
+    "online_s": 26.0223,
+    "preprocess_s": 18.4912,
+    "total_s": 44.5135,
+    "online_bytes": 3697143025,
+    "preprocess_bytes": 61984768,
+    "total_bytes": 3759127793,
+    "per_image": [
+      {
+        "online_s": 26.0223,
+        "ot_s": 18.4912,
+        "online_bytes": 3697143025,
+        "ot_bytes": 61984768,
+        "winner": 808,
+        "image": "56df1a993ba5b139a449b61a4cb1a840a3e241a9.jpeg",
+        "label": 452
+      }
+    ]
+  },
+  {
+    "model": "MobileNetV2",
+    "network": "LAN",
+    "method": "Cheetah",
+    "images": 1,
+    "session_seconds": 170.07717224489897,
+    "network_probe_mbit": [
+      2676.6254326775706,
+      2621.6338850645593
+    ],
+    "network_probe_rtt_ms": 0.35404134541749954,
+    "online_s": 116.139,
+    "preprocess_s": 36.0678,
+    "total_s": 152.2068,
+    "online_bytes": 26359868330,
+    "preprocess_bytes": 159421952,
+    "total_bytes": 26519290282,
+    "per_image": [
+      {
+        "online_s": 116.139,
+        "ot_s": 36.0678,
+        "online_bytes": 26359868330,
+        "ot_bytes": 159421952,
+        "winner": 452,
+        "image": "56df1a993ba5b139a449b61a4cb1a840a3e241a9.jpeg",
+        "label": 452
+      }
+    ]
+  },
+  {
+    "model": "MobileNetV2",
+    "network": "LAN",
+    "method": "OptiPrime",
+    "images": 1,
+    "session_seconds": 24.926072436384857,
+    "network_probe_mbit": [
+      2621.612811875143,
+      2736.9716870909783
+    ],
+    "network_probe_rtt_ms": 0.3423027228564024,
+    "online_s": 12.3875,
+    "preprocess_s": 7.90824,
+    "total_s": 20.29574,
+    "online_bytes": 1021097571,
+    "preprocess_bytes": 44274432,
+    "total_bytes": 1065372003,
+    "per_image": [
+      {
+        "online_s": 12.3875,
+        "ot_s": 7.90824,
+        "online_bytes": 1021097571,
+        "ot_bytes": 44274432,
+        "winner": 562,
+        "image": "56df1a993ba5b139a449b61a4cb1a840a3e241a9.jpeg",
+        "label": 452
+      }
+    ]
+  }
+]
